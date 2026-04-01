@@ -1,26 +1,16 @@
 from youtube_transcript_api import YouTubeTranscriptApi
-import re
+import requests ,re , unicodedata
 
 def extrair_id(url):
     match = re.search(r"v=([a-zA-Z0-9_-]+)", url)
-    return match.group(1) if match else "video"
+    return match.group(1) if match else None
 
 def limpar_texto(texto):
     # Remove texto entre colchetes e substitui quebras de linha por espaço
     texto = re.sub(r'\[[^\]]*\]', '', texto)
-    texto = texto.replace('\n', ' ')
     # Remove espaços duplicados 
     texto = re.sub(r'\s*\n\s*', ' ', texto)
     return texto.strip()
-
-#def quebrar_em_frases(texto):
-    frases = re.split(r'(?<=[.!?])\s+', texto)
-    if len(frases) <=1:
-        palavras = texto.split()
-        tamanho_bloco = max(8,min(20, len(palavras) // 10))
-        frases = [" ".join(palavras[i:i + tamanho_bloco]) 
-                  for i in range(0, len(palavras), tamanho_bloco)]  
-    return frases
 
 def normalizar_sentencas(texto):
     if not texto:
@@ -57,12 +47,6 @@ def quebra_por_gatilhos(texto):
     
     texto = re.sub(r'\n{3,}', '\n\n', texto)
     return texto.strip()
-
-#def agrupar_em_paragrafos(frases, max_frases=5):
-    paragrafos = []
-    for i in range(0, len(frases), max_frases):
-        paragrafos.append(" ".join(frases[i:i + max_frases]))
-    return "\n\n".join(paragrafos)
 
 def agrupar_por_tempo(transcript, pausa=2.0, max_palavras=80):
     paragrafos = []
@@ -155,6 +139,52 @@ def corrigir_quebras_artificiais(texto):
     # Só junta se NÃO houver pontuação (.!?) antes da quebra
     return re.sub(r'([^.!?])\s*\n\s*\n\s*', r'\1 ', texto)
 
+def obter_titulo_video(url):
+    try:
+        response = requests.get(url, timeout=10, headers={
+            "User-Agent": "Mozilla/5.0"
+            })
+        html = response.text
+
+        match = re.search(r'<title>(.*?)</title>', html)
+        if match:
+            titulo = match.group(1)
+            titulo = titulo.replace(" - YouTube", "").strip()
+            return titulo
+
+        return "video"
+
+    except Exception:
+        return "video"
+
+def limpar_nome_arquivo(nome):
+    # Remove acentos
+    nome = unicodedata.normalize('NFKD', nome).encode('ASCII', 'ignore').decode('ASCII')
+
+    # Remove caracteres inválidos
+    nome = re.sub(r'[\\/*?:"<>|,]', '', nome)
+
+    # Substitui espaços por underscore
+    nome = re.sub(r'\s+', '_', nome)
+
+    # Remove múltiplos underscores
+    nome = re.sub(r'_+', '_', nome)
+
+    # Remove underscores no início/fim
+    nome = nome.strip('_')
+
+    # Limita tamanho sem cortar palavra no meio
+    palavras = nome.split('_')
+    resultado = []
+
+    for palavra in palavras:
+        if len("_".join(resultado + [palavra])) <= 60:
+            resultado.append(palavra)
+        else:
+            break
+
+    return "_".join(resultado).lower()
+
 def obter_transcricao(url):
     video_id = extrair_id(url)
     if not video_id:
@@ -184,6 +214,8 @@ def obter_transcricao(url):
             p_limpo = quebra_por_gatilhos(p_limpo) 
             # 6. REFINAMENTO FINAL  
             p_limpo = corrigir_quebra_apos_dois_pontos(p_limpo) 
+            
+            p_limpo = corrigir_quebras_artificiais(p_limpo)
             
             if p_limpo:
                 paragrafos_processados.append(p_limpo)
