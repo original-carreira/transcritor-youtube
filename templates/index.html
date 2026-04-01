@@ -68,6 +68,16 @@
         <span id="loading">Processando...</span>
     </form>
 
+    {% if thumbnail %}
+    <div style="margin-top:15px;">
+        <img 
+        src="{{ thumbnail[0] }}"
+        onerror="this.onerror=null; this.src='{{ thumbnail[1] }}';"
+        style="max-width:400px; border-radius:8px;"
+        alt="Thumbnail do vídeo">
+    </div>
+    {% endif %}
+
     {% if transcricao %}
         <h2>Transcrição:</h2>
 

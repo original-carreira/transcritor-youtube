@@ -185,6 +185,21 @@ def limpar_nome_arquivo(nome):
 
     return "_".join(resultado).lower()
 
+def obter_thumbnail(video_id):
+    if not video_id:
+        return None
+
+    qualidades = [
+        "maxresdefault",
+        "hqdefault",
+        "mqdefault"
+    ]
+
+    return [
+        f"https://img.youtube.com/vi/{video_id}/{q}.jpg"
+        for q in qualidades
+    ]
+
 def obter_transcricao(url):
     video_id = extrair_id(url)
     if not video_id:

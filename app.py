@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, send_file
-from transcript import obter_transcricao, obter_titulo_video, limpar_nome_arquivo
+from transcript import obter_transcricao, obter_titulo_video, limpar_nome_arquivo, extrair_id, obter_thumbnail
 from docx import Document 
 from docx.shared import Pt
 import io
@@ -11,6 +11,7 @@ def index():
     url = None
     titulo = None
     transcricao = None
+    thumbnail = None
  
     if request.method == 'POST':
         url = request.form.get('url','').strip()
@@ -20,8 +21,11 @@ def index():
         else:
             transcricao = obter_transcricao(url)
             titulo = obter_titulo_video(url)
+            
+            video_id = extrair_id(url)
+            thumbnail = obter_thumbnail(video_id)
 
-    return render_template('index.html', transcricao=transcricao, url=url, titulo=titulo)
+    return render_template('index.html', transcricao=transcricao, url=url, titulo=titulo, thumbnail=thumbnail)
 
 @app.route('/download_txt', methods=['POST'])
 def download_txt():
