@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transcrição YouTube</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+        }
+
+        .caixa-texto {
+            white-space: pre-wrap; 
+            border: 1px solid #ccc; 
+            padding: 15px; 
+            margin-top: 10px;
+            width: 100%;
+            font-family: sans-serif;
+            background-color: #f9f9f9;
+        }
+
+        .botoes { 
+            margin-top: 15px; 
+            display: flex; 
+            gap: 10px; 
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            max-width: 600px;
+            padding: 5px;
+        }
+
+        #copiado-msg {
+            display: none;
+            color: green;
+            margin-left: 10px;
+        }
+
+        #loading {
+            display: none;
+            margin-left: 10px;
+            color: blue;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Transcritor de Vídeos do YouTube</h1>
+
+    <!-- Formulário de Busca -->
+    <form method="POST">
+        <label for="url">URL do Vídeo:</label><br><br>
+
+        <input type="text" id="url" name="url" 
+               value="{{ url or '' }}"  
+               required 
+               placeholder="Cole a URL do vídeo aqui">
+
+        <br><br>
+
+        <button type="submit" onclick="mostrarLoading()">Obter Transcrição</button>
+        <span id="loading">Processando...</span>
+    </form>
+
+    {% if transcricao %}
+        <h2>Transcrição:</h2>
+
+        <!-- Formulário de Download -->
+        <form method="POST">
+
+            <input type="hidden" name="url" value="{{ url }}">
+
+            <textarea name="texto" class="caixa-texto" rows="20" readonly>{{ transcricao | e }}</textarea>
+
+            <div class="botoes">
+                <button type="submit" formaction="/download_txt">Baixar TXT</button>
+                <button type="submit" formaction="/download_docx">Baixar Word (.docx)</button>
+                <button type="button" onclick="copiarTexto()">Copiar Texto</button>
+                <span id="copiado-msg">Copiado!</span>
+            </div>
+
+        </form>
+    {% endif %}
+
+</body>
+
+<script>
+function copiarTexto() {
+    const texto = document.querySelector('textarea[name="texto"]').value;
+
+    navigator.clipboard.writeText(texto).then(() => {
+        const msg = document.getElementById('copiado-msg');
+        msg.style.display = 'inline';
+        setTimeout(() => msg.style.display = 'none', 2000);
+    }).catch(err => {
+        console.error('Erro ao copiar: ', err);
+    });
+}
+
+function mostrarLoading() {
+    document.getElementById('loading').style.display = 'inline';
+}
+</script>
+
+</html>
