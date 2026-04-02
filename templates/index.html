@@ -1,106 +1,208 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <!-- Configurações básicas da página -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <h2>{{ titulo }}</h2>
+    
+    <!-- Título da aba do navegador -->
     <title>Transcrição YouTube</title>
 
+    <!-- Estilos da aplicação -->
     <style>
+        /* Estilo geral da página */
         body {
-            font-family: sans-serif;
-            margin: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        /* Container central (card principal) */
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* Título principal */
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
         }
 
-        .caixa-texto {
-            white-space: pre-wrap; 
-            border: 1px solid #ccc; 
-            padding: 15px; 
-            margin-top: 10px;
-            width: 100%;
-            font-family: sans-serif;
-            background-color: #f9f9f9;
-        }
-
-        .botoes { 
-            margin-top: 15px; 
-            display: flex; 
-            gap: 10px; 
-            flex-wrap: wrap;
-        }
-
+        /* Campo de entrada */
         input[type="text"] {
             width: 100%;
-            max-width: 600px;
-            padding: 5px;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            transition: border-color 0.2s;
         }
 
-        #copiado-msg {
+        /* Destaque ao focar no input */
+        input[type="text"]:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+        
+        /* Botões padrão */
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        /* Hover do botão */
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Espaçamento entre formulários */
+        form {
+            margin-top: 20px;
+        }
+        
+        /* Área da transcrição */
+        .caixa-texto {
+            white-space: pre-wrap;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 15px;
+            width: 100%;
+            background-color: #fafafa;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            line-height: 1.5;
+        }
+            
+        /* Container de botões */
+        .botoes {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* Imagem do vídeo */
+        img {
+            display: block;
+            margin: 15px auto;
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        
+        /* Indicador de carregamento */
+        #loading {
+            color: #007BFF;
+            margin-left: 10px;
             display: none;
+        }
+        
+        /* Feedback de cópia */
+        #copiado-msg {
             color: green;
             margin-left: 10px;
-        }
-
-        #loading {
             display: none;
-            margin-left: 10px;
-            color: blue;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Transcritor de Vídeos do YouTube</h1>
+    <!-- Container principal -->
+    <div class="container">
 
-    <!-- Formulário de Busca -->
-    <form method="POST">
-        <label for="url">URL do Vídeo:</label><br><br>
+        <!-- Título do sistema -->
+        <h1>Transcritor de Vídeos do YouTube</h1>
 
-        <input type="text" id="url" name="url" 
-               value="{{ url or '' }}"  
-               required 
-               placeholder="Cole a URL do vídeo aqui">
-
-        <br><br>
-
-        <button type="submit" onclick="mostrarLoading()">Obter Transcrição</button>
-        <span id="loading">Processando...</span>
-    </form>
-
-    {% if thumbnail %}
-    <div style="margin-top:15px;">
-        <img 
-        src="{{ thumbnail[0] }}"
-        onerror="this.onerror=null; this.src='{{ thumbnail[1] }}';"
-        style="max-width:400px; border-radius:8px;"
-        alt="Thumbnail do vídeo">
-    </div>
-    {% endif %}
-
-    {% if transcricao %}
-        <h2>Transcrição:</h2>
-
-        <!-- Formulário de Download -->
+        <!-- Formulário de entrada da URL -->
         <form method="POST">
+            <label for="url">URL do Vídeo:</label><br><br>
 
-            <input type="hidden" name="url" value="{{ url }}">
+            <input type="text" id="url" name="url" 
+                   value="{{ url or '' }}"  
+                   required 
+                   placeholder="Cole a URL do vídeo aqui">
 
-            <textarea name="texto" class="caixa-texto" rows="20" readonly>{{ transcricao | e }}</textarea>
+            <br><br>
 
-            <div class="botoes">
-                <button type="submit" formaction="/download_txt">Baixar TXT</button>
-                <button type="submit" formaction="/download_docx">Baixar Word (.docx)</button>
-                <button type="button" onclick="copiarTexto()">Copiar Texto</button>
-                <span id="copiado-msg">Copiado!</span>
+            <!-- Botão que inicia o processo -->
+            <button type="submit" onclick="mostrarLoading()">Obter Transcrição</button>
+            <span id="loading">Processando...</span>
+        </form>
+
+        <!-- Exibição do título do vídeo -->
+        {% if titulo %}
+            <h2 style="text-align:center;">{{ titulo }}</h2>
+        {% endif %}
+
+        <!-- Exibição da thumbnail -->
+        {% if thumbnail %}
+        <div>
+            <img 
+                src="{{ thumbnail[0] }}"
+                onerror="this.onerror=null; this.src='{{ thumbnail[1] }}';"
+                alt="Thumbnail do vídeo">
+        </div>
+        {% endif %}
+
+        <!-- Se houver transcrição, mostrar conteúdo -->
+        {% if transcricao %}
+
+            <h3 style="margin-top:20px;">Transcrição:</h3>
+
+            <!-- Formulário de download -->
+            <form method="POST">
+
+                <!-- Mantém a URL para uso no backend -->
+                <input type="hidden" name="url" value="{{ url }}">
+
+                <!-- Área de texto da transcrição -->
+                <textarea name="texto" class="caixa-texto" rows="20" readonly>
+{{ transcricao | e }}
+                </textarea>
+
+                <!-- Botões de ação -->
+                <div class="botoes">
+                    <button type="submit" formaction="/download_txt">Baixar TXT</button>
+                    <button type="submit" formaction="/download_docx">Baixar Word (.docx)</button>
+                    
+                    <button type="button" onclick="copiarTexto()" aria-label="Copiar transcrição">
+                        Copiar Texto
+                    </button>
+
+                    <span id="copiado-msg">Copiado!</span>
+                </div>
+
+            </form>
+
+            <!-- Botão para resetar a tela -->
+            <div class="botoes" style="margin-top:25px;">
+                <form method="GET" action="/">
+                    <button type="submit" style="background-color: #6c757d;">
+                        Nova Transcrição
+                    </button>
+                </form>
             </div>
 
-        </form>
-    {% endif %}
+        {% endif %}
+
+    </div>
 
 </body>
 
+<!-- Scripts JS -->
 <script>
+
 function copiarTexto() {
     const texto = document.querySelector('textarea[name="texto"]').value;
 
@@ -116,6 +218,7 @@ function copiarTexto() {
 function mostrarLoading() {
     document.getElementById('loading').style.display = 'inline';
 }
+
 </script>
 
 </html>
