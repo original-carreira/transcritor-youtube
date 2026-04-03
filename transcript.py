@@ -6,6 +6,9 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import requests
 import re
 import unicodedata
+import json
+import os
+import time
 
 
 # ==============================
@@ -278,6 +281,69 @@ def obter_thumbnail(video_id):
 
 
 # ==============================
+# CACHE (HISTÓRICO LOCAL)
+# ==============================
+
+ARQUIVO_CACHE = "historico.json"
+
+
+def carregar_cache():
+    """
+    Carrega o histórico do arquivo JSON.
+    Retorna lista de itens.
+    """
+    if not os.path.exists(ARQUIVO_CACHE):
+        return []
+
+    try:
+        with open(ARQUIVO_CACHE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
+
+
+def salvar_cache(dados):
+    """
+    Salva lista completa no JSON.
+    """
+    with open(ARQUIVO_CACHE, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=2)
+
+def buscar_no_cache(video_id):
+    """
+    Procura uma transcrição já salva no cache.
+    Retorna o item completo ou None.    
+    """
+    historico = carregar_cache()
+    for item in historico:
+        if item.get("video_id") == video_id:
+            return item
+    return None
+
+def salvar_no_cache(video_id, url, titulo, thumbnail, transcricao):
+    """
+    Salva nova transcrição no cache.
+    Evita duplicações.
+    """
+    
+    historico = carregar_cache()
+    
+    for item in historico:
+        if item.get("video_id") == video_id:
+            return
+    
+    historico.append({
+        "video_id": video_id,
+        "url": url,
+        "titulo": titulo,
+        "thumbnail": thumbnail,
+        "transcricao": transcricao
+        })
+    
+    salvar_cache(historico)
+    
+
+# ==============================
 # FUNÇÃO PRINCIPAL
 # ==============================
 
@@ -290,6 +356,12 @@ def obter_transcricao(url):
     - estrutura
     """
     video_id = extrair_id(url)
+    
+    # Verifica se já existe no cache
+    cache_item = buscar_no_cache(video_id)
+    
+    if cache_item:
+        return cache_item.get("transcricao")
 
     if not video_id:
         return "URL inválida."
@@ -330,7 +402,13 @@ def obter_transcricao(url):
             if p_limpo:
                 paragrafos_processados.append(p_limpo)
 
+        titulo = obter_titulo_video(url)
+        thumbnail = obter_thumbnail(video_id)
+        
+        salvar_no_cache(video_id, url, titulo, thumbnail, "\n\n".join(paragrafos_processados))
+        
         return "\n\n".join(paragrafos_processados)
+      
 
     except Exception as e:
         return f"Erro ao obter transcrição: {str(e)}"

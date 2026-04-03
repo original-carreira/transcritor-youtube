@@ -148,6 +148,18 @@ def download_docx():
 
 
 # ==============================
+# CACHE (HISTÓRICO LOCAL)
+# ==============================
+
+import json
+import os
+
+ARQUIVO_CACHE = "historico.json"
+
+
+
+
+# ==============================
 # EXECUÇÃO LOCAL
 # ==============================
 
