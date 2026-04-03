@@ -50,14 +50,23 @@ def index():
             transcricao = "Por favor, insira uma URL do YouTube."
         else:
             # 1. Processa transcrição
-            transcricao = obter_transcricao(url)
+            resultado = obter_transcricao(url)
+            
+            # Se veio do cache (dict completo)
+            if isinstance(resultado, dict):
+                transcricao = resultado.get("transcricao")
+                titulo = resultado.get("titulo")
+                thumbnail = resultado.get("thumbnail")
+            # Se veio processamento normal (string)
+            else:
+                transcricao = resultado
+                # 2. Obtém título (usado no front e downloads
+                titulo = obter_titulo_video(url) 
+                
+                # 3. Obtém thumbnail a partir do ID
+                video_id = extrair_id(url) 
+                thumbnail = obter_thumbnail(video_id)
 
-            # 2. Obtém título (usado no front e downloads)
-            titulo = obter_titulo_video(url)
-
-            # 3. Obtém thumbnail a partir do ID
-            video_id = extrair_id(url)
-            thumbnail = obter_thumbnail(video_id)
 
     # Renderiza página com os dados
     return render_template(
@@ -145,16 +154,6 @@ def download_docx():
         download_name=f"{nome_arquivo}.docx",
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
-
-
-# ==============================
-# CACHE (HISTÓRICO LOCAL)
-# ==============================
-
-import json
-import os
-
-ARQUIVO_CACHE = "historico.json"
 
 
 

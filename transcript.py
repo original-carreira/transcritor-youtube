@@ -361,7 +361,7 @@ def obter_transcricao(url):
     cache_item = buscar_no_cache(video_id)
     
     if cache_item:
-        return cache_item.get("transcricao")
+        return cache_item
 
     if not video_id:
         return "URL inválida."
