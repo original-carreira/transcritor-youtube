@@ -2,13 +2,14 @@
 # IMPORTS
 # ==============================
 
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, redirect, url_for
 from transcript import (
     obter_transcricao,
     obter_titulo_video,
     limpar_nome_arquivo,
     extrair_id,
-    obter_thumbnail
+    obter_thumbnail,
+    limpar_cache,
 )
 
 from docx import Document
@@ -156,6 +157,17 @@ def download_docx():
     )
 
 
+# ==============================
+# LIMPAR HISTÓRICO
+# ==============================
+
+@app.route('/limpar_historico', methods=['POST'])
+def limpar_historico():
+    """
+    Limpa o cache e retorna para a página inicial.
+    """
+    limpar_cache()
+    return redirect(url_for('index'))
 
 
 # ==============================

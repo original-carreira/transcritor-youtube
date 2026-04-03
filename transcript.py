@@ -412,3 +412,14 @@ def obter_transcricao(url):
 
     except Exception as e:
         return f"Erro ao obter transcrição: {str(e)}"
+    
+    
+# ==============================
+# LIMPAR CACHE
+# ==============================
+
+def limpar_cache():
+    """
+    Apaga todo o conteúdo do histórico (cache).
+    """
+    salvar_cache([])

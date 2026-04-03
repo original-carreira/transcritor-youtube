@@ -194,6 +194,15 @@
                 </form>
             </div>
 
+            <!-- Botão para limpar o histórico -->
+            <div class="botoes" style="margin-top:25px;">
+                <form method="POST" action="/limpar_historico" onsubmit="return confirm('Tem certeza que deseja limpar o histórico? Esta ação não pode ser desfeita.');">
+                    <button type="submit" style="background-color: #dc3545;">
+                        Limpar Histórico
+                    </button>
+                </form>
+            </div>
+
         {% endif %}
 
     </div>
