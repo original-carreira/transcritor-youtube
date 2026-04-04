@@ -16,6 +16,8 @@ from transcript import (
 from docx import Document
 from docx.shared import Pt
 import io
+import webbrowser
+import threading
 
 
 # ==============================
@@ -177,6 +179,16 @@ def limpar_historico():
 # EXECUÇÃO LOCAL
 # ==============================
 
+def abrir_navegador():
+    """
+    Abre o navegador no endereço local da aplicação.
+    """
+    webbrowser.open("http://127.0.0.1:5000")
+
+
 if __name__ == '__main__':
-    # Rodar aplicação Flask em modo debug (desenvolvimento)
-    app.run(debug=True)
+    # Aguarda o servidor iniciar antes de abrir o navegador
+    threading.Timer(3.0, abrir_navegador).start()
+
+    # Executa o servidor Flask
+    app.run(debug=False)
