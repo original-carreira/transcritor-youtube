@@ -274,7 +274,22 @@ def obter_thumbnail(video_id):
 # CACHE (HISTÓRICO LOCAL)
 # ==============================
 
-ARQUIVO_CACHE = "historico.json"
+def obter_caminho_cache():
+    """
+    Define o local do arquivo de cache.
+    Usa AppData no Windows para padrão profissional.
+    """
+    pasta_base = os.getenv('LOCALAPPDATA') or os.getcwd()
+
+    pasta_app = os.path.join(pasta_base, "@VictorCarreira", "TranscritorYouTube")
+
+    # Garante que a pasta existe
+    os.makedirs(pasta_app, exist_ok=True)
+
+    return os.path.join(pasta_app, "historico.json")
+
+
+ARQUIVO_CACHE = obter_caminho_cache()
 
 
 def carregar_cache():
