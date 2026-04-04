@@ -7,173 +7,10 @@
     
     <!-- Título da aba do navegador -->
     <title>Transcrição YouTube</title>
+    
+    <!-- Link para o arquivo CSS de estilos -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-    <!-- Estilos da aplicação -->
-    <style>
-        /* Estilo geral da página */
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f8;
-            margin: 0;
-            padding: 20px;
-        }
-        
-        /* Container centralizado com estilo de cartão */
-        .container {
-            max-width: 800px;
-            margin: auto;
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        
-        /* Estilo do título principal */
-        h1 {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        /* Estilo dos rótulos e campos de entrada */
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 8px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
-
-        /* Estilo para o campo de entrada quando em foco */
-        input[type="text"]:focus {
-            border-color: #007BFF;
-            outline: none;
-        }
-        
-        /* Estilo dos botões */
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 6px;
-            background-color: #007BFF;
-            color: white;
-            cursor: pointer;
-        }
-        
-        /* Estilo dos botões quando hover */
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        /* Estilo do formulário e da caixa de texto da transcrição */
-        form {
-            margin-top: 20px;
-        }
-        
-        /* Estilo da caixa de texto da transcrição */
-        .caixa-texto {
-            white-space: pre-wrap;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-top: 15px;
-            width: 100%;
-            background-color: #fafafa;
-            border-radius: 6px;
-            font-family: 'Courier New', Courier, monospace;
-            line-height: 1.5;
-        }
-            
-        /* Estilo para os botões de ação */
-        .botoes {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* Remove margens dos formulários dentro da classe .botoes para melhor alinhamento */
-        .botoes form {
-            margin: 0;
-        }
-        
-        /* Estilo para a imagem do thumbnail */
-        img {
-            display: block;
-            margin: 15px auto;
-            max-width: 100%;
-            border-radius: 8px;
-        }
-        
-        /* Estilo para mensagens de status (loading e copiado) */
-        #loading {
-            color: #007BFF;
-            margin-left: 10px;
-            display: none;
-        }
-        
-        /* Estilo para mensagem de texto copiado */
-        #copiado-msg {
-            color: green;
-            margin-left: 10px;
-            display: none;
-        }
-
-        /* HISTÓRICO */
-        /* Estilo para a caixa do histórico */
-        .historico-box {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border: 1px solid #e0e0e0;
-        }
-
-        /* Estilo para o cabeçalho do histórico, com título e botão de limpar */
-        .historico-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Remove margens do título do histórico para melhor alinhamento */
-        .historico-header h3 {
-            margin: 0;
-        }
-
-        /* Estilo para a lista de itens do histórico */
-        .historico-lista {
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Estilo para os itens do histórico (botões) */
-        .historico-item {
-            width: 100%;
-            text-align: left;
-            background-color: #17a2b8;
-            border-radius: 6px;
-            padding: 10px;
-            border: none;
-            color: white;
-            cursor: pointer;
-        }
-
-        /* Estilo para os itens do histórico quando hover */
-        .historico-item:hover {
-            background-color: #138496;
-        }
-
-        /* BOTÃO PERIGO */
-        .btn-danger {
-            background-color: #dc3545;
-        }
-
-        /* Estilo para o botão de perigo quando hover */
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-    </style>
 </head>
 
 <body>
@@ -245,7 +82,7 @@
         <!-- RESET -->
         <div class="botoes" style="margin-top:25px;">
             <form method="GET" action="/">
-                <button type="submit" style="background-color: #6c757d;">
+                <button type="submit" style="background-color: #797d81;">
                     Nova Transcrição
                 </button>
             </form>
