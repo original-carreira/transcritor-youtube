@@ -116,6 +116,63 @@
             margin-left: 10px;
             display: none;
         }
+
+        /* HISTÓRICO */
+        /* Estilo para a caixa do histórico */
+        .historico-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Estilo para o cabeçalho do histórico, com título e botão de limpar */
+        .historico-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Remove margens do título do histórico para melhor alinhamento */
+        .historico-header h3 {
+            margin: 0;
+        }
+
+        /* Estilo para a lista de itens do histórico */
+        .historico-lista {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Estilo para os itens do histórico (botões) */
+        .historico-item {
+            width: 100%;
+            text-align: left;
+            background-color: #17a2b8;
+            border-radius: 6px;
+            padding: 10px;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Estilo para os itens do histórico quando hover */
+        .historico-item:hover {
+            background-color: #138496;
+        }
+
+        /* BOTÃO PERIGO */
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        /* Estilo para o botão de perigo quando hover */
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 
@@ -206,25 +263,38 @@
 
 <!-- Exibe o histórico de transcrições anteriores, se houver -->
 {% if historico %}
-    <div style="margin-top:30px;">
+<div class="historico-box">
+
+    <div class="historico-header">
         <h3>📜 Histórico</h3>
 
-        <ul style="list-style: none; padding: 0;">
-            {% for item in historico %}
-                <li style="margin-bottom:10px;">
-
-                    <form method="POST" style="display:inline;">
-                        <input type="hidden" name="url" value="{{ item.url }}">
-                        
-                        <button type="submit" style="background-color:#17a2b8;">
-                            {{ item.titulo }}
-                        </button>
-                    </form>
-
-                </li>
-            {% endfor %}
-        </ul>
+        <!-- Botão limpar visível aqui também -->
+        <form method="POST" action="/limpar_historico"
+              onsubmit="return confirm('Deseja limpar todo o histórico?');">
+            <button class="btn-danger">Limpar</button>
+        </form>
     </div>
+
+    <div class="historico-lista">
+        {% for item in historico %}
+            <form method="POST">
+                <input type="hidden" name="url" value="{{ item.url }}">
+
+                <button class="historico-item">
+                    {{ item.titulo }}
+                </button>
+            </form>
+        {% endfor %}
+    </div>
+
+</div>
+{% endif %}
+
+<!-- Mensagem para quando não houver histórico disponível -->
+{% if not historico %}
+<p style="margin-top:20px; color:#666;">
+    Nenhum histórico disponível ainda.
+</p>
 {% endif %}
 
 </div>
