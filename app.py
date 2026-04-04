@@ -10,6 +10,7 @@ from transcript import (
     extrair_id,
     obter_thumbnail,
     limpar_cache,
+    listar_historico,
 )
 
 from docx import Document
@@ -68,13 +69,17 @@ def index():
                 video_id = extrair_id(url)
                 thumbnail = obter_thumbnail(video_id)
 
+    # 4. Lista histórico para exibir na página (mais recentes primeiro)
+    historico = listar_historico()  # Obtém histórico para exibir na página
+    
     # Renderiza página com os dados
     return render_template(
         'index.html',
         transcricao=transcricao,
         url=url,
         titulo=titulo,
-        thumbnail=thumbnail
+        thumbnail=thumbnail,
+        historico=historico
     )
 
 

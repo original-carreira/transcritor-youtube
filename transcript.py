@@ -347,6 +347,13 @@ def limpar_cache():
     salvar_cache([])
 
 
+def listar_historico():
+    """
+    Retorna o histórico completo (mais recentes primeiro).
+    """
+    historico = carregar_cache()
+    return list(reversed(historico))
+
 # ==============================
 # FUNÇÃO PRINCIPAL
 # ==============================

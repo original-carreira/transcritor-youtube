@@ -204,6 +204,29 @@
 
     {% endif %}
 
+<!-- Exibe o histórico de transcrições anteriores, se houver -->
+{% if historico %}
+    <div style="margin-top:30px;">
+        <h3>📜 Histórico</h3>
+
+        <ul style="list-style: none; padding: 0;">
+            {% for item in historico %}
+                <li style="margin-bottom:10px;">
+
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="url" value="{{ item.url }}">
+                        
+                        <button type="submit" style="background-color:#17a2b8;">
+                            {{ item.titulo }}
+                        </button>
+                    </form>
+
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
 </div>
 
 <!-- Scripts JavaScript para funcionalidades de copiar texto e mostrar loading -->
