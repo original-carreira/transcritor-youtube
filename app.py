@@ -18,6 +18,8 @@ from docx.shared import Pt
 import io
 import webbrowser
 import threading
+import time
+import socket
 
 
 # ==============================
@@ -179,16 +181,28 @@ def limpar_historico():
 # EXECUÇÃO LOCAL
 # ==============================
 
+def servidor_esta_pronto(host="127.0.0.1", port=5000):
+    """
+    Verifica se o servidor já está aceitando conexões.
+    """
+    while True:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return True
+        except OSError:
+            time.sleep(0.3)
+
+
 def abrir_navegador():
     """
-    Abre o navegador no endereço local da aplicação.
+    Aguarda o servidor subir e então abre o navegador.
     """
+    servidor_esta_pronto()
     webbrowser.open("http://127.0.0.1:5000")
 
 
 if __name__ == '__main__':
-    # Aguarda o servidor iniciar antes de abrir o navegador
-    threading.Timer(3.0, abrir_navegador).start()
+    # Thread separada para não bloquear o Flask
+    threading.Thread(target=abrir_navegador).start()
 
-    # Executa o servidor Flask
     app.run(debug=False)
