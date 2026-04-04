@@ -8,7 +8,6 @@ import re
 import unicodedata
 import json
 import os
-import time
 
 
 # ==============================
@@ -32,7 +31,6 @@ def limpar_texto(texto):
     """
     Remove:
     - textos entre colchetes [música], [aplausos]
-    - quebras de linha
     - espaços duplicados
     """
     texto = re.sub(r'\[[^\]]*\]', '', texto)
@@ -76,11 +74,9 @@ def normalizar_sentencas(texto):
 
 def remover_repeticoes(texto):
     """
-    Remove palavras repetidas consecutivas:
-    Ex: "muito muito bom" → "muito bom"
+    Remove palavras repetidas consecutivas.
     """
-    texto = re.sub(r'\b(\w{2,})\s+\1\b', r'\1', texto, flags=re.IGNORECASE)
-    return texto
+    return re.sub(r'\b(\w{2,})\s+\1\b', r'\1', texto, flags=re.IGNORECASE)
 
 
 # ==============================
@@ -162,32 +158,29 @@ def agrupar_por_tempo(transcript, pausa=2.0, max_palavras=80):
 # ==============================
 
 def corrigir_pontos_quebrados(texto):
-    """
-    Corrige:
+    """ Corrige:
     - palavras curtas quebradas com ponto
-    Ex: "no. Caminho" → "no Caminho"
+    Ex: "no. Caminho" → "no Caminho" 
     """
+    
     excecoes = r'(?![Ss]r|[Dd]r|[Aa]v|[Aa]rt|[Cc]ap|[Ii]d)'
-
+    
     padrao = r'\b(' + excecoes + r'\w{1,3})\.\s+([A-ZÁÉÍÓÚÂÊÔÃÕÇ])'
     texto = re.sub(padrao, r'\1 \2', texto)
-
     texto = re.sub(r'\s+\.\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ])', '. ', texto)
-
+    
     return texto.strip()
 
 
 def corrigir_quebra_apos_dois_pontos(texto):
-    """
-    Corrige quebra após ":".
-    """
+    """ Corrige quebra após ":" """
+    
     return re.sub(r':\s*[\r\n]+', ': ', texto)
 
 
 def limpar_quebras_indevidas(texto):
-    """
-    Junta frases quebradas incorretamente após conectivos.
-    """
+    """ Junta frases quebradas incorretamente após conectivos """
+    
     conectivos = r'\b(a|de|do|da|e|o|que|com|em|um|uma|para|por|como)\b'
 
     texto = re.sub(
@@ -207,9 +200,8 @@ def limpar_quebras_indevidas(texto):
 
 
 def corrigir_quebras_artificiais(texto):
-    """
-    Junta quebras de linha indevidas sem pontuação.
-    """
+    """ Junta quebras de linha indevidas sem pontuação. """
+    
     return re.sub(r'([^.!?])\s*\n\s*\n\s*', r'\1 ', texto)
 
 
@@ -218,20 +210,15 @@ def corrigir_quebras_artificiais(texto):
 # ==============================
 
 def obter_titulo_video(url):
-    """
-    Obtém o título do vídeo via HTML.
-    """
+    """ Obtém o título do vídeo via HTML."""
+    
     try:
-        response = requests.get(url, timeout=10, headers={
-            "User-Agent": "Mozilla/5.0"
-        })
-
+        response = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
         html = response.text
 
         match = re.search(r'<title>(.*?)</title>', html)
         if match:
-            titulo = match.group(1)
-            return titulo.replace(" - YouTube", "").strip()
+            return match.group(1).replace(" - YouTube", "").strip()
 
         return "titulo_indisponivel"
 
@@ -246,6 +233,8 @@ def limpar_nome_arquivo(nome):
     - remove caracteres inválidos
     - limita tamanho sem cortar palavras
     """
+    
+    
     nome = unicodedata.normalize('NFKD', nome).encode('ASCII', 'ignore').decode('ASCII')
     nome = re.sub(r'[\\/*?:"<>|,]', '', nome)
     nome = re.sub(r'\s+', '_', nome)
@@ -268,7 +257,8 @@ def obter_thumbnail(video_id):
     """
     Retorna lista de thumbnails em diferentes qualidades
     (fallback automático no frontend).
-    """
+    """    
+    
     if not video_id:
         return None
 
@@ -288,10 +278,10 @@ ARQUIVO_CACHE = "historico.json"
 
 
 def carregar_cache():
-    """
-    Carrega o histórico do arquivo JSON.
+    """Carrega o histórico do arquivo JSON.
     Retorna lista de itens.
     """
+    
     if not os.path.exists(ARQUIVO_CACHE):
         return []
 
@@ -306,19 +296,26 @@ def salvar_cache(dados):
     """
     Salva lista completa no JSON.
     """
+    
     with open(ARQUIVO_CACHE, "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
+
 
 def buscar_no_cache(video_id):
     """
     Procura uma transcrição já salva no cache.
     Retorna o item completo ou None.    
-    """
+    """    
+    
+    if not video_id:
+        return None
+
     historico = carregar_cache()
     for item in historico:
         if item.get("video_id") == video_id:
             return item
     return None
+
 
 def salvar_no_cache(video_id, url, titulo, thumbnail, transcricao):
     """
@@ -327,21 +324,28 @@ def salvar_no_cache(video_id, url, titulo, thumbnail, transcricao):
     """
     
     historico = carregar_cache()
-    
+
     for item in historico:
         if item.get("video_id") == video_id:
             return
-    
+
     historico.append({
         "video_id": video_id,
         "url": url,
         "titulo": titulo,
         "thumbnail": thumbnail,
         "transcricao": transcricao
-        })
-    
+    })
+
     salvar_cache(historico)
-    
+
+
+def limpar_cache():
+    """
+    Apaga todo o conteúdo do histórico (cache).
+    """
+    salvar_cache([])
+
 
 # ==============================
 # FUNÇÃO PRINCIPAL
@@ -354,12 +358,12 @@ def obter_transcricao(url):
     - limpa
     - corrige
     - estrutura
-    """
+    """    
+    
     video_id = extrair_id(url)
-    
-    # Verifica se já existe no cache
+
+    # Verifica se já existe no cache, CACHE FIRST (evita chamada externa)
     cache_item = buscar_no_cache(video_id)
-    
     if cache_item:
         return cache_item
 
@@ -374,27 +378,20 @@ def obter_transcricao(url):
             return "Nenhuma transcrição encontrada."
 
         paragrafos_brutos = agrupar_por_tempo(transcript)
-
         paragrafos_processados = []
 
         for p in paragrafos_brutos:
-
             # 1. LIMPEZA BRUTA
             p_limpo = limpar_texto(p)
-
             # 2. CORREÇÃO ESTRUTURAL
             p_limpo = limpar_quebras_indevidas(p_limpo)
             p_limpo = corrigir_pontos_quebrados(p_limpo)
-
             # 3. REMOVER REPETIÇÕES (ANTES DA NORMALIZAÇÃO)
             p_limpo = remover_repeticoes(p_limpo)
-
             # 4. NORMALIZAÇÃO
             p_limpo = normalizar_sentencas(p_limpo)
-
             # 5. ESTRUTURAÇÃO
             p_limpo = quebra_por_gatilhos(p_limpo)
-
             # 6. REFINAMENTO FINAL
             p_limpo = corrigir_quebra_apos_dois_pontos(p_limpo)
             p_limpo = corrigir_quebras_artificiais(p_limpo)
@@ -402,24 +399,14 @@ def obter_transcricao(url):
             if p_limpo:
                 paragrafos_processados.append(p_limpo)
 
+        texto_final = "\n\n".join(paragrafos_processados)
+
         titulo = obter_titulo_video(url)
         thumbnail = obter_thumbnail(video_id)
-        
-        salvar_no_cache(video_id, url, titulo, thumbnail, "\n\n".join(paragrafos_processados))
-        
-        return "\n\n".join(paragrafos_processados)
-      
+
+        salvar_no_cache(video_id, url, titulo, thumbnail, texto_final)
+
+        return texto_final
 
     except Exception as e:
         return f"Erro ao obter transcrição: {str(e)}"
-    
-    
-# ==============================
-# LIMPAR CACHE
-# ==============================
-
-def limpar_cache():
-    """
-    Apaga todo o conteúdo do histórico (cache).
-    """
-    salvar_cache([])

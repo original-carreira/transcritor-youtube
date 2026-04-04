@@ -18,7 +18,7 @@
             padding: 20px;
         }
         
-        /* Container central (card principal) */
+        /* Container centralizado com estilo de cartão */
         .container {
             max-width: 800px;
             margin: auto;
@@ -28,29 +28,28 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         
-        /* Título principal */
+        /* Estilo do título principal */
         h1 {
             text-align: center;
             margin-bottom: 25px;
         }
 
-        /* Campo de entrada */
+        /* Estilo dos rótulos e campos de entrada */
         input[type="text"] {
             width: 100%;
             padding: 10px;
             margin-top: 8px;
             border-radius: 6px;
             border: 1px solid #ccc;
-            transition: border-color 0.2s;
         }
 
-        /* Destaque ao focar no input */
+        /* Estilo para o campo de entrada quando em foco */
         input[type="text"]:focus {
             border-color: #007BFF;
             outline: none;
         }
         
-        /* Botões padrão */
+        /* Estilo dos botões */
         button {
             padding: 10px 15px;
             border: none;
@@ -58,20 +57,19 @@
             background-color: #007BFF;
             color: white;
             cursor: pointer;
-            transition: background-color 0.2s;
         }
         
-        /* Hover do botão */
+        /* Estilo dos botões quando hover */
         button:hover {
             background-color: #0056b3;
         }
 
-        /* Espaçamento entre formulários */
+        /* Estilo do formulário e da caixa de texto da transcrição */
         form {
             margin-top: 20px;
         }
         
-        /* Área da transcrição */
+        /* Estilo da caixa de texto da transcrição */
         .caixa-texto {
             white-space: pre-wrap;
             border: 1px solid #ddd;
@@ -84,15 +82,20 @@
             line-height: 1.5;
         }
             
-        /* Container de botões */
+        /* Estilo para os botões de ação */
         .botoes {
             margin-top: 15px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
+
+        /* Remove margens dos formulários dentro da classe .botoes para melhor alinhamento */
+        .botoes form {
+            margin: 0;
+        }
         
-        /* Imagem do vídeo */
+        /* Estilo para a imagem do thumbnail */
         img {
             display: block;
             margin: 15px auto;
@@ -100,14 +103,14 @@
             border-radius: 8px;
         }
         
-        /* Indicador de carregamento */
+        /* Estilo para mensagens de status (loading e copiado) */
         #loading {
             color: #007BFF;
             margin-left: 10px;
             display: none;
         }
         
-        /* Feedback de cópia */
+        /* Estilo para mensagem de texto copiado */
         #copiado-msg {
             color: green;
             margin-left: 10px;
@@ -118,100 +121,93 @@
 
 <body>
 
-    <!-- Container principal -->
-    <div class="container">
+<!-- Container principal da aplicação -->
+<div class="container">
 
-        <!-- Título do sistema -->
-        <h1>Transcritor de Vídeos do YouTube</h1>
+    <!-- Título principal da aplicação -->
+    <h1>Transcritor de Vídeos do YouTube</h1>
 
-        <!-- Formulário de entrada da URL -->
+    <!-- FORM PRINCIPAL -->
+    <form method="POST" onsubmit="mostrarLoading()">
+        <label for="url">URL do Vídeo:</label><br><br>
+
+        <input type="text" id="url" name="url" 
+               value="{{ url or '' }}"  
+               required 
+               placeholder="Cole a URL do vídeo aqui">
+
+        <br><br>
+
+        <!-- Botão para enviar o formulário e obter a transcrição -->
+        <button type="submit" id="btn-submit">Obter Transcrição</button>
+        <span id="loading">Processando...</span>
+    </form>
+
+    <!-- Título do vídeo -->
+    {% if titulo %}
+        <h2 style="text-align:center;">{{ titulo }}</h2>
+    {% endif %}
+
+    <!-- Thumbnail do vídeo, com fallback para imagem genérica -->
+    {% if thumbnail %}
+        <img 
+            src="{{ thumbnail[0] }}"
+            onerror="this.onerror=null; this.src='{{ thumbnail[1] }}';"
+            alt="Thumbnail do vídeo">
+    {% endif %}
+
+    <!-- Exibe a transcrição se estiver disponível -->
+    {% if transcricao %}
+
+        <h3 style="margin-top:20px;">Transcrição:</h3>
+
+        <!-- FORM DOWNLOAD -->
         <form method="POST">
-            <label for="url">URL do Vídeo:</label><br><br>
 
-            <input type="text" id="url" name="url" 
-                   value="{{ url or '' }}"  
-                   required 
-                   placeholder="Cole a URL do vídeo aqui">
+            <!-- IMPORTANTE: agora envia título -->
+            <input type="hidden" name="url" value="{{ url }}">
+            <input type="hidden" name="titulo" value="{{ titulo }}">
 
-            <br><br>
+            <!-- textarea sem identação extra -->
+            <textarea name="texto" class="caixa-texto" rows="20" readonly>{{ transcricao | e }}</textarea>
 
-            <!-- Botão que inicia o processo -->
-            <button type="submit" onclick="mostrarLoading()">Obter Transcrição</button>
-            <span id="loading">Processando...</span>
+            <!-- Botões para baixar em TXT, DOCX e copiar para área de transferência -->
+            <div class="botoes">
+                <button type="submit" formaction="/download_txt">Baixar TXT</button>
+                <button type="submit" formaction="/download_docx">Baixar Word (.docx)</button>
+                
+                <button type="button" onclick="copiarTexto()">
+                    Copiar Texto
+                </button>
+
+                <span id="copiado-msg">Copiado!</span>
+            </div>
+
         </form>
 
-        <!-- Exibição do título do vídeo -->
-        {% if titulo %}
-            <h2 style="text-align:center;">{{ titulo }}</h2>
-        {% endif %}
-
-        <!-- Exibição da thumbnail -->
-        {% if thumbnail %}
-        <div>
-            <img 
-                src="{{ thumbnail[0] }}"
-                onerror="this.onerror=null; this.src='{{ thumbnail[1] }}';"
-                alt="Thumbnail do vídeo">
-        </div>
-        {% endif %}
-
-        <!-- Se houver transcrição, mostrar conteúdo -->
-        {% if transcricao %}
-
-            <h3 style="margin-top:20px;">Transcrição:</h3>
-
-            <!-- Formulário de download -->
-            <form method="POST">
-
-                <!-- Mantém a URL para uso no backend -->
-                <input type="hidden" name="url" value="{{ url }}">
-
-                <!-- Área de texto da transcrição -->
-                <textarea name="texto" class="caixa-texto" rows="20" readonly>
-{{ transcricao | e }}
-                </textarea>
-
-                <!-- Botões de ação -->
-                <div class="botoes">
-                    <button type="submit" formaction="/download_txt">Baixar TXT</button>
-                    <button type="submit" formaction="/download_docx">Baixar Word (.docx)</button>
-                    
-                    <button type="button" onclick="copiarTexto()" aria-label="Copiar transcrição">
-                        Copiar Texto
-                    </button>
-
-                    <span id="copiado-msg">Copiado!</span>
-                </div>
-
+        <!-- RESET -->
+        <div class="botoes" style="margin-top:25px;">
+            <form method="GET" action="/">
+                <button type="submit" style="background-color: #6c757d;">
+                    Nova Transcrição
+                </button>
             </form>
 
-            <!-- Botão para resetar a tela -->
-            <div class="botoes" style="margin-top:25px;">
-                <form method="GET" action="/">
-                    <button type="submit" style="background-color: #6c757d;">
-                        Nova Transcrição
-                    </button>
-                </form>
-            </div>
+        <!-- LIMPAR HISTÓRICO -->
+            <form method="POST" action="/limpar_historico"
+                  onsubmit="return confirm('Tem certeza que deseja limpar o histórico? Esta ação não pode ser desfeita.');">
+                <button type="submit" style="background-color: #dc3545;">
+                    Limpar Histórico
+                </button>
+            </form>
+        </div>
 
-            <!-- Botão para limpar o histórico -->
-            <div class="botoes" style="margin-top:25px;">
-                <form method="POST" action="/limpar_historico" onsubmit="return confirm('Tem certeza que deseja limpar o histórico? Esta ação não pode ser desfeita.');">
-                    <button type="submit" style="background-color: #dc3545;">
-                        Limpar Histórico
-                    </button>
-                </form>
-            </div>
+    {% endif %}
 
-        {% endif %}
+</div>
 
-    </div>
-
-</body>
-
-<!-- Scripts JS -->
+<!-- Scripts JavaScript para funcionalidades de copiar texto e mostrar loading -->
 <script>
-
 function copiarTexto() {
     const texto = document.querySelector('textarea[name="texto"]').value;
 
@@ -219,15 +215,14 @@ function copiarTexto() {
         const msg = document.getElementById('copiado-msg');
         msg.style.display = 'inline';
         setTimeout(() => msg.style.display = 'none', 2000);
-    }).catch(err => {
-        console.error('Erro ao copiar: ', err);
     });
 }
 
 function mostrarLoading() {
     document.getElementById('loading').style.display = 'inline';
+    document.getElementById('btn-submit').disabled = true;
 }
-
 </script>
 
+</body>
 </html>

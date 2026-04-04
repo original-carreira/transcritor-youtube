@@ -34,7 +34,7 @@ def index():
     Página principal:
     - recebe URL
     - processa transcrição
-    - retorna dados para o template
+    - usa cache quando disponível
     """
 
     # Estado inicial (GET)
@@ -46,28 +46,27 @@ def index():
     if request.method == 'POST':
         url = request.form.get('url', '').strip()
 
-        # Validação básica
         if not url:
             transcricao = "Por favor, insira uma URL do YouTube."
         else:
             # 1. Processa transcrição
             resultado = obter_transcricao(url)
-            
-            # Se veio do cache (dict completo)
+
+            # 🔍 CACHE HIT → retorno completo (dict completo)
             if isinstance(resultado, dict):
                 transcricao = resultado.get("transcricao")
                 titulo = resultado.get("titulo")
                 thumbnail = resultado.get("thumbnail")
-            # Se veio processamento normal (string)
+
+            # 🔄 CACHE MISS → processamento normal(string)
             else:
                 transcricao = resultado
-                # 2. Obtém título (usado no front e downloads
-                titulo = obter_titulo_video(url) 
-                
-                # 3. Obtém thumbnail a partir do ID
-                video_id = extrair_id(url) 
-                thumbnail = obter_thumbnail(video_id)
+                # 2. Obtém título (usado no front e downloads)
+                titulo = obter_titulo_video(url)
 
+                # 3. Obtém thumbnail a partir do ID do vídeo
+                video_id = extrair_id(url)
+                thumbnail = obter_thumbnail(video_id)
 
     # Renderiza página com os dados
     return render_template(
@@ -87,20 +86,20 @@ def index():
 def download_txt():
     """
     Gera arquivo .txt da transcrição.
+    Evita nova chamada ao YouTube usando título do formulário.
     """
 
     texto = request.form.get('texto', '').strip()
-    url = request.form.get('url', '').strip()
+    titulo = request.form.get('titulo', '').strip()
 
     # Validação
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    # Nome do arquivo baseado no título do vídeo
-    titulo = obter_titulo_video(url)
-    nome_arquivo = limpar_nome_arquivo(titulo)
+    # Limpa título para usar como nome de arquivo, ou usa nome genérico
+    nome_arquivo = limpar_nome_arquivo(titulo or "transcricao")
 
-    # Cria arquivo em memória
+    # Cria arquivo em memória (BytesIO) para envio
     buffer = io.BytesIO()
     buffer.write(texto.encode('utf-8'))
     buffer.seek(0)
@@ -124,27 +123,26 @@ def download_docx():
     """
 
     texto = request.form.get('texto', '').strip()
-    url = request.form.get('url', '').strip()
+    titulo = request.form.get('titulo', '').strip()
 
     # Validação
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    # Metadados
-    titulo = obter_titulo_video(url)
-    nome_arquivo = limpar_nome_arquivo(titulo)
+    # Limpa título para usar como nome de arquivo, ou usa nome genérico
+    nome_arquivo = limpar_nome_arquivo(titulo or "transcricao")
 
-    # Criação do documento
+    # Cria documento Word em memória usando python-docx
     document = Document()
-    document.add_heading(titulo, 0)
+    document.add_heading(titulo or "Transcrição", 0)
 
-    # Cada bloco vira um parágrafo
+    # Adiciona parágrafos com espaçamento entre eles
     for paragrafo in texto.split("\n\n"):
         if paragrafo.strip():
             p = document.add_paragraph(paragrafo.strip())
             p.paragraph_format.space_after = Pt(12)
 
-    # Salva em memória
+    # Salva documento em um buffer de memória (BytesIO) para envio
     buffer = io.BytesIO()
     document.save(buffer)
     buffer.seek(0)
@@ -164,7 +162,7 @@ def download_docx():
 @app.route('/limpar_historico', methods=['POST'])
 def limpar_historico():
     """
-    Limpa o cache e retorna para a página inicial.
+    Limpa o cache e redireciona (PRG pattern).
     """
     limpar_cache()
     return redirect(url_for('index'))
@@ -175,5 +173,5 @@ def limpar_historico():
 # ==============================
 
 if __name__ == '__main__':
-    # debug=True → recarregamento automático e logs detalhados
+    # Rodar aplicação Flask em modo debug (desenvolvimento)
     app.run(debug=True)
