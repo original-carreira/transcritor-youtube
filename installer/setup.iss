@@ -33,10 +33,16 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only).
 ;PrivilegesRequired=lowest
 OutputDir=output
-OutputBaseFilename=TranscritorYouTube
+OutputBaseFilename=TranscritorYouTube_v{#MyAppVersion}
 SetupIconFile=icon.ico
 SolidCompression=yes
-WizardStyle=classic
+WizardStyle=modern
+CloseApplications=yes
+CloseApplicationsFilter=TranscritorYouTube.exe
+RestartApplications=no
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}"
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -53,5 +59,5 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent unchecked
 
