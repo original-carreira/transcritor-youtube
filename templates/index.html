@@ -80,20 +80,11 @@
         </form>
 
         <!-- RESET -->
-        <div class="botoes" style="margin-top:25px;">
+        <div class="botoes-topo">
             <form method="GET" action="/">
-                <button type="submit" style="background-color: #797d81;">
-                    Nova Transcrição
-                </button>
+                <button class="btn-secondary">Nova Transcrição</button>
             </form>
-
-        <!-- LIMPAR HISTÓRICO -->
-            <form method="POST" action="/limpar_historico"
-                  onsubmit="return confirm('Tem certeza que deseja limpar o histórico? Esta ação não pode ser desfeita.');">
-                <button type="submit" style="background-color: #dc3545;">
-                    Limpar Histórico
-                </button>
-            </form>
+        
         </div>
 
     {% endif %}
@@ -107,7 +98,7 @@
 
         <!-- Botão limpar visível aqui também -->
         <form method="POST" action="/limpar_historico"
-              onsubmit="return confirm('Deseja limpar todo o histórico?');">
+              onsubmit="return confirm('Deseja limpar todo o histórico? Esta ação não pode ser desfeita.');">
             <button class="btn-danger">Limpar</button>
         </form>
     </div>

@@ -99,12 +99,12 @@ button:hover {
 
 /* Botão secundário */
 .btn-secondary {
-    background-color: #6c757d;
+    background-color: #495057;
     color: white;
 }
 
 .btn-secondary:hover {
-    background-color: #545b62;
+    background-color: #343a40;
 }
 
 /* Botão de ação informativa */
@@ -119,12 +119,12 @@ button:hover {
 
 /* Botão de perigo (ex: limpar histórico) */
 .btn-danger {
-    background-color: #dc3545;
-    color: white;
+    background-color: #e03131;
+    color: #ffffff;
 }
 
 .btn-danger:hover {
-    background-color: #c82333;
+    background-color: #c92a2a;
 }
 
 /* ==============================
@@ -168,6 +168,12 @@ form {
 /* Remove margens internas dos forms dentro de .botoes */
 .botoes form {
     margin: 0;
+}
+
+.botoes-topo {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
 }
 
 /* ==============================
