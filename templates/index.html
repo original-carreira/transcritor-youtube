@@ -125,25 +125,8 @@
 </p>
 {% endif %}
 
-</div>
-
 <!-- Scripts JavaScript para funcionalidades de copiar texto e mostrar loading -->
-<script>
-function copiarTexto() {
-    const texto = document.querySelector('textarea[name="texto"]').value;
-
-    navigator.clipboard.writeText(texto).then(() => {
-        const msg = document.getElementById('copiado-msg');
-        msg.style.display = 'inline';
-        setTimeout(() => msg.style.display = 'none', 2000);
-    });
-}
-
-function mostrarLoading() {
-    document.getElementById('loading').style.display = 'inline';
-    document.getElementById('btn-submit').disabled = true;
-}
-</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 </html>
