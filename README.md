@@ -23,6 +23,18 @@ Aplicação desenvolvida em Python com Flask para obter, limpar e exportar trans
 
 ---
 
+✔ Aplicação funcional (Flask)
+✔ Interface organizada (HTML + CSS + JS)
+✔ Cache persistente (JSON em AppData)
+✔ Histórico navegável
+✔ Exportação (TXT / DOCX)
+✔ Executável (.exe)
+✔ Instalador profissional (Inno Setup)
+✔ Desinstalação limpa
+✔ Versionamento estruturado (Git + tag v1.0)
+✔ Documentação completa (README.md)
+---
+
 # 🧠 Tecnologias Utilizadas
 
 * Python 3
