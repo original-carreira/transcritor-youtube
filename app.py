@@ -3,6 +3,7 @@
 # ==============================
 from flask import Flask, render_template, request, send_file, redirect, url_for
 from app.services.transcription_service import TranscriptionService # Import da classe
+from app.repositories.cache_repository import CacheRepository
 
 from docx import Document
 from docx.shared import Pt
@@ -18,6 +19,7 @@ import socket
 
 app = Flask(__name__)
 service = TranscriptionService() # Instância única para o app
+cache_repo = CacheRepository()   # Cria a instância do repositório
 
 # ==============================
 # ROTA PRINCIPAL
@@ -52,7 +54,7 @@ def index():
                 thumbnail = service.obter_thumbnail(video_id)
 
     # CENTRALIZADO: Histórico via service
-    historico = service.listar_historico()
+    historico = cache_repo.listar()
     
     return render_template(
         'index.html',
@@ -130,7 +132,7 @@ def download_docx():
 @app.route('/limpar_historico', methods=['POST'])
 def limpar_historico():
     # CENTRALIZADO: Limpeza via service
-    service.limpar_cache()
+    cache_repo.limpar()
     return redirect(url_for('index'))
 
 # ==============================

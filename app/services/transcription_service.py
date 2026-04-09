@@ -2,6 +2,8 @@
 #           IMPORTS
 # =============================
 from youtube_transcript_api import YouTubeTranscriptApi
+from app.repositories.cache_repository import CacheRepository
+
 import requests
 import re
 import unicodedata
@@ -9,6 +11,9 @@ import json
 import os
 
 class TranscriptionService:
+    def __init__(self):
+        self.cache = CacheRepository()
+    
     def process(self, url: str):
         """Orquestra todo o fluxo de transcrição.
         (Inicialmente, só vamos mover código existente para cá)"""
@@ -185,74 +190,7 @@ class TranscriptionService:
         if not video_id:
             return None
         qualidades = ["maxresdefault", "hqdefault", "mqdefault"]
-        return [f"https://youtube.com{video_id}/{q}.jpg"
-                for q in qualidades]
-
-    # ==============================
-    # CACHE (HISTÓRICO LOCAL)
-    # ==============================
-    def obter_caminho_cache(self):
-        """Define o local do arquivo de cache.
-        Usa AppData no Windows para padrão profissional."""
-        pasta_base = os.getenv('LOCALAPPDATA') or os.getcwd()
-        pasta_app = os.path.join(pasta_base, "@VictorCarreira", "TranscritorYouTube")
-        # Garante que a pasta existe
-        os.makedirs(pasta_app, exist_ok=True)
-        return os.path.join(pasta_app, "historico.json")
-
-    def carregar_cache(self):
-        """Carrega o histórico do arquivo JSON.
-        Retorna lista de itens."""
-        arquivo_cache = self.obter_caminho_cache()
-        if not os.path.exists(arquivo_cache):
-            return []
-        try:
-            with open(arquivo_cache, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
-            return []
-
-    def salvar_cache(self, dados):
-        """Salva lista completa no JSON."""
-        arquivo_cache = self.obter_caminho_cache()
-        with open(arquivo_cache, "w", encoding="utf-8") as f:
-            json.dump(dados, f, ensure_ascii=False, indent=2)
-
-    def buscar_no_cache(self, video_id):
-        """Procura uma transcrição já salva no cache.
-        Retorna o item completo ou None."""
-        if not video_id:
-            return None
-        historico = self.carregar_cache()
-        for item in historico:
-            if item.get("video_id") == video_id:
-                return item
-        return None
-
-    def salvar_no_cache(self, video_id, url, titulo, thumbnail, transcricao):
-        """Salva nova transcrição no cache.
-        Evita duplicações."""
-        historico = self.carregar_cache()
-        for item in historico:
-            if item.get("video_id") == video_id:
-                return
-        historico.append({
-            "video_id": video_id,
-            "url": url,
-            "titulo": titulo,
-            "thumbnail": thumbnail,
-            "transcricao": transcricao
-        })
-        self.salvar_cache(historico)
-
-    def limpar_cache(self):
-        """Apaga todo o conteúdo do histórico (cache)."""
-        self.salvar_cache([])
-
-    def listar_historico(self):
-        """Retorna o histórico completo (mais recentes primeiro)."""
-        historico = self.carregar_cache()
-        return list(reversed(historico))
+        return [f"https://youtube.com{video_id}/{q}.jpg" for q in qualidades]
 
     # ==============================
     # FUNÇÃO PRINCIPAL
@@ -265,7 +203,7 @@ class TranscriptionService:
         - estrutura"""
         video_id = self.extrair_id(url)
         # Verifica se já existe no cache, CACHE FIRST (evita chamada externa)
-        cache_item = self.buscar_no_cache(video_id)
+        cache_item = self.cache.buscar_por_video_id(video_id)
         if cache_item:
             return cache_item["transcricao"]
             
@@ -303,7 +241,7 @@ class TranscriptionService:
             texto_final = "\n\n".join(paragrafos_processados)
             titulo = self.obter_titulo_video(url)
             thumbnail = self.obter_thumbnail(video_id)
-            self.salvar_no_cache(video_id, url, titulo, thumbnail, texto_final)
+            self.cache.adicionar(video_id, url, titulo, thumbnail, texto_final)
             return texto_final
             
         except Exception as e:
