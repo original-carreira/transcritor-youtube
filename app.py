@@ -1,24 +1,43 @@
 # ==============================
 # IMPORTS
 # ==============================
-from flask import Flask, render_template, request, send_file, redirect, url_for
-from app.services.transcription_service import TranscriptionService # Import da classe
-from app.repositories.cache_repository import CacheRepository
-from app.exporters import get_exporter
-
-from docx import Document
-from docx.shared import Pt
+import os
+import sys
 import io
-import webbrowser
 import threading
 import time
 import socket
+import webbrowser
+from flask import Flask, render_template, request, send_file, redirect, url_for
+
+# Imports do seu projeto
+from app.services.transcription_service import TranscriptionService
+from app.repositories.cache_repository import CacheRepository
+from app.exporters import get_exporter
+
+# ==============================
+# UTILITÁRIOS (Compatibilidade com Executável)
+# ==============================
+def resource_path(relative_path):
+    """ Obtém o caminho absoluto para recursos, compatível com PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
+
 
 # ==============================
 # CONFIGURAÇÃO DA APLICAÇÃO
 # ==============================
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=resource_path("templates"),
+    static_folder=resource_path("static")
+    )
 service = TranscriptionService() # Instância única para o app
 cache_repo = CacheRepository()   # Cria a instância do repositório
 
