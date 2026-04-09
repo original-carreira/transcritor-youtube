@@ -163,6 +163,10 @@ form {
     border-radius: 8px;
     font-family: Consolas, monospace;
     line-height: 1.6;
+
+    /* Scroll interno da transcrição */
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 /* ==============================
@@ -218,6 +222,7 @@ img {
     display: none;
 }
 
+/* Mensagem de erro */
 .erro {
     margin-top: 20px;
     padding: 12px;
@@ -252,12 +257,34 @@ img {
     margin: 0;
 }
 
-/* Lista de itens */
+/* Lista de itens do histórico */
 .historico-lista {
     margin-top: 15px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+
+    /* Scroll interno */
+    max-height: 350px;
+    overflow-y: auto;
+
+    /* Firefox (cross-browser) */
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+/* Chrome / Edge / Safari */
+.historico-lista::-webkit-scrollbar {
+    width: 6px;
+}
+
+.historico-lista::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 6px;
+}
+
+.historico-lista::-webkit-scrollbar-thumb:hover {
+    background: #999;
 }
 
 /* Item individual do histórico */
@@ -277,13 +304,7 @@ img {
     background-color: #138496;
 }
 
-/* Scroll no histórico*/
-.historico-lista {
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.caixa-texto {
-    max-height: 400px;
-    overflow-y: auto;
+.transcription-box {
+    white-space: pre-wrap;
+    word-break: break-word;
 }
