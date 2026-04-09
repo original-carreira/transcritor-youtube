@@ -3,6 +3,7 @@
 # =============================
 from youtube_transcript_api import YouTubeTranscriptApi
 from app.repositories.cache_repository import CacheRepository
+from app.clients.youtube_client import YouTubeClient
 
 import requests
 import re
@@ -13,6 +14,7 @@ import os
 class TranscriptionService:
     def __init__(self):
         self.cache = CacheRepository()
+        self.youtube = YouTubeClient()
     
     def process(self, url: str):
         """Orquestra todo o fluxo de transcrição.
@@ -211,10 +213,10 @@ class TranscriptionService:
             return "URL inválida."
             
         try:
-            api = YouTubeTranscriptApi()
-            transcript = api.fetch(video_id, languages=['pt', 'pt-BR', 'en'])
+            transcript = self.youtube.fetch_transcript(video_id)
+            
             if not transcript:
-                return "Nenhuma transcrição encontrada."
+                return "Nenhuma trasncrição encontrada."
                 
             paragrafos_brutos = self.agrupar_por_tempo(transcript)
             paragrafos_processados = []
