@@ -1,10 +1,10 @@
 # ==============================
 #           IMPORTS
 # =============================
-from youtube_transcript_api import YouTubeTranscriptApi
 from app.repositories.cache_repository import CacheRepository
 from app.clients.youtube_client import YouTubeClient
 
+import youtube_transcript_api
 import requests
 import re
 import unicodedata
@@ -19,19 +19,21 @@ class TranscriptionService:
     def process(self, url: str):
         """Orquestra todo o fluxo de transcrição."""
         resultado = self.obter_transcricao(url)
-    
-        # Caso já venha padronizado (cache futuro ou evolução)
-        if isinstance(resultado, dict) and "success" in resultado:
-            return resultado
         
-        # Caso venha do fluxo atual (compatibilidade
+        # Se for um dicionário vindo do cache ou do fluxo de extração
         if isinstance(resultado, dict):
+            texto = resultado.get("transcricao") or resultado.get("text")
+            
+            # LÓGICA DE ORIGEM: 
+            # Se o dicionário tiver 'video_id', sabemos que veio do nosso CacheRepository
+            origem = "Cache Local" if "video_id" in resultado else "YouTube API"
+            
             return {
-                "text": resultado.get("transcricao") or resultado.get("trascricao"),
+                "text": texto,
                 "segments": None,
-                "source": "cache",
-                "success": True,
-                "error": None,
+                "source": origem,
+                "success": True if texto else False,
+                "error": None if texto else "Transcrição vazia",
                 "titulo": resultado.get("titulo"),
                 "thumbnail": resultado.get("thumbnail")
                 }
@@ -122,24 +124,46 @@ class TranscriptionService:
         bloco = []
         ultimo_tempo_fim = None
         contador_palavras = 0
+        
         for item in transcript:
-            texto = (item.get('text') or "").strip()
+             # ✅ O PULO DO GATO: Se não for um dicionário, acessamos como objeto
+            # Isso evita o erro "'FetchedTranscriptSnippet' object has no attribute 'get'"
+            try:
+                texto = item['text'].strip()
+                tempo_inicio = item['start']
+                duracao = item.get('duration', 0) or 0
+            except (TypeError, KeyError, AttributeError):
+                # Fallback para acesso como atributo de objeto
+                texto = item.text.strip()
+                tempo_inicio = item.start
+                duracao = getattr(item, 'duration', 0) or 0
+
             if not texto:
                 continue
-            tempo_inicio = item.get('start')
-            duracao = item.get('duration') or 0
+
             tempo_fim = tempo_inicio + duracao
             qtd_palavras = len(texto.split())
-            quebra_tempo = (ultimo_tempo_fim is not None and
+            
+            
+            if not texto:
+                continue
+            
+            tempo_fim = tempo_inicio + duracao
+            qtd_palavras = len(texto.split())
+
+            quebra_tempo = (ultimo_tempo_fim is not None and 
                            (tempo_inicio - ultimo_tempo_fim > pausa))
             quebra_tamanho = (contador_palavras + qtd_palavras) > max_palavras
+
             if (quebra_tempo or quebra_tamanho) and bloco:
                 paragrafos.append(" ".join(bloco))
                 bloco = []
                 contador_palavras = 0
+
             bloco.append(texto)
             contador_palavras += qtd_palavras
             ultimo_tempo_fim = tempo_fim
+
         if bloco:
             paragrafos.append(" ".join(bloco))
         return paragrafos
@@ -223,58 +247,65 @@ class TranscriptionService:
     # FUNÇÃO PRINCIPAL
     # ==============================
     def obter_transcricao(self, url):
-        """Pipeline completo:
-        - obtém transcript
-        - limpa
-        - corrige
-        - estrutura"""
+        """Pipeline completo com extração robusta usando o método estático de lista."""
         video_id = self.extrair_id(url)
-        # Verifica se já existe no cache, CACHE FIRST (evita chamada externa)
+        
+        # 1. Verifica Cache
         cache_item = self.cache.buscar_por_video_id(video_id)
         if cache_item:
-            cache_item["_source"] = "cache"
+            cache_item["video_id"] = video_id 
             return cache_item
             
         if not video_id:
             return "URL inválida."
             
         try:
-            transcript = self.youtube.fetch_transcript(video_id)
+            # 2. CHAMADA ESTÁTICA (Funciona em 99% das versões)
+            # Nota: O método é get_transcript (no singular) e pertence à classe
+            from youtube_transcript_api import YouTubeTranscriptApi
             
-            if not transcript:
-                return "Nenhuma trasncrição encontrada."
+            # Dentro do obter_transcricao no TranscriptionService
+            transcript_list = self.youtube.fetch_transcript(video_id)
+            
+            if not transcript_list:
+                return "Nenhuma transcrição encontrada."
                 
-            paragrafos_brutos = self.agrupar_por_tempo(transcript)
+            # 3. Agrupamento (Passamos a lista de dicionários retornada)
+            paragrafos_brutos = self.agrupar_por_tempo(transcript_list)
             paragrafos_processados = []
             
+            # 4. Pipeline de Limpeza (Mantendo sua lógica original)
             for p in paragrafos_brutos:
-                # 1. LIMPEZA BRUTA
                 p_limpo = self.limpar_texto(p)
-                # 2. CORREÇÃO ESTRUTURAL
                 p_limpo = self.limpar_quebras_indevidas(p_limpo)
                 p_limpo = self.corrigir_pontos_quebrados(p_limpo)
-                # 3. REMOVER REPETIÇÕES (ANTES DA NORMALIZAÇÃO)
                 p_limpo = self.remover_repeticoes(p_limpo)
-                # 4. NORMALIZAÇÃO
                 p_limpo = self.normalizar_sentencas(p_limpo)
-                # 5. ESTRUTURAÇÃO
                 p_limpo = self.quebra_por_gatilhos(p_limpo)
-                # 6. REFINAMENTO FINAL
                 p_limpo = self.corrigir_quebra_apos_dois_pontos(p_limpo)
                 p_limpo = self.corrigir_quebras_artificiais(p_limpo)
                 
                 if p_limpo:
                     paragrafos_processados.append(p_limpo)
-                    
+            
             texto_final = "\n\n".join(paragrafos_processados)
+            
+            if not texto_final:
+                return "Transcrição obtida, mas vazia após limpeza."
+
             titulo = self.obter_titulo_video(url)
             thumbnail = self.obter_thumbnail(video_id)
+            
+            # 5. Salva no Cache
             self.cache.adicionar(video_id, url, titulo, thumbnail, texto_final)
+            
             return {
-                "trascricao": texto_final,
+                "transcricao": texto_final,
                 "titulo": titulo,
                 "thumbnail": thumbnail
-                }
+            }
             
         except Exception as e:
-            return f"Erro ao obter transcrição: {str(e)}"
+            return f"Erro na API do YouTube: {str(e)}"
+
+   

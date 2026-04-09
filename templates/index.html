@@ -37,21 +37,31 @@
         <span id="loading">Processando...</span>
     </form>
 
+
+    <!-- ✅ ERRO AQUI -->
+     {% if resultado and not resultado.success %}
+        <div class="erro">
+            {{ resultado.error }}
+         </div>
+    {% endif %}
+
     <!-- Título do vídeo -->
-    {% if titulo %}
-        <h2 style="text-align:center;">{{ titulo }}</h2>
+    {% if resultado and resultado.success %}
+        <h2 style="text-align:center;">{{ resultado.titulo }}</h2>
+        <p class="source-info"> Origem: <strong>{{ resultado.source }}</strong>
+</p>
     {% endif %}
 
     <!-- Thumbnail do vídeo, com fallback para imagem genérica -->
-    {% if thumbnail %}
+    {% if resultado and resultado.thumbnail and resultado.thumbnail|length > 0 %}
         <img 
-            src="{{ thumbnail[0] }}"
-            onerror="this.onerror=null; this.src='{{ thumbnail[1] }}';"
+            src="{{ resultado.thumbnail[0] }}"
+            onerror="this.onerror=null; this.src='{{ resultado.thumbnail[1] if resultado.thumbnail|length > 1 else '' }}';"
             alt="Thumbnail do vídeo">
     {% endif %}
 
     <!-- Exibe a transcrição se estiver disponível -->
-    {% if transcricao %}
+    {% if resultado and resultado.success %}
 
         <h3 style="margin-top:20px;">Transcrição:</h3>
 
@@ -60,10 +70,10 @@
 
             <!-- IMPORTANTE: agora envia título -->
             <input type="hidden" name="url" value="{{ url }}">
-            <input type="hidden" name="titulo" value="{{ titulo }}">
+            <input type="hidden" name="titulo" value="{{ resultado.titulo }}">
 
             <!-- textarea sem identação extra -->
-            <textarea name="texto" class="caixa-texto" rows="20" readonly>{{ transcricao | e }}</textarea>
+            <textarea name="texto" class="caixa-texto" rows="20" readonly>{{ resultado.text | e }}</textarea>
 
             <!-- Botões para baixar em TXT, DOCX e copiar para área de transferência -->
             <div class="botoes">

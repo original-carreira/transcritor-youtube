@@ -24,6 +24,18 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.08);
 }
 
+/* Origem da transcrição (cache/api) */
+.source-info {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin-top: 8px;
+}
+
+.source-info strong {
+    color: #007BFF;
+}
+
 /* ==============================
    TIPOGRAFIA
    ============================== */
@@ -206,6 +218,15 @@ img {
     display: none;
 }
 
+.erro {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #ffe3e3;
+    color: #c92a2a;
+    border: 1px solid #ffa8a8;
+}
+
 /* ==============================
    HISTÓRICO
    ============================== */
@@ -254,4 +275,15 @@ img {
 /* Hover do item */
 .historico-item:hover {
     background-color: #138496;
+}
+
+/* Scroll no histórico*/
+.historico-lista {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.caixa-texto {
+    max-height: 400px;
+    overflow-y: auto;
 }

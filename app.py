@@ -28,40 +28,35 @@ cache_repo = CacheRepository()   # Cria a instância do repositório
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    resultado = None
     url = None
-    titulo = None
-    transcricao = None
-    thumbnail = None
 
     if request.method == 'POST':
-        url = request.form.get('url', '').strip()
+        url = request.form.get('url')
+        if url:
+            url = url.strip()
 
         if not url:
-            transcricao = "Por favor, insira uma URL do YouTube."
+            resultado = {
+                "text": None,
+                "segments": None,
+                "source": "Sistema",
+                "success": False,
+                "error": "Por favor, insira uma URL do YouTube.",
+                "titulo": None,
+                "thumbnail": None
+                }      
         else:
             # CENTRALIZADO: O service.process agora resolve tudo (cache ou nova extração)
             resultado = service.process(url)
-
-            # Se o retorno for o dicionário do cache ou objeto completo
-            if resultado.get("success"):
-                transcricao = resultado.get("text")
-                titulo = resultado.get("titulo")
-                thumbnail = resultado.get("thumbnail")
-            else:
-                # Fallback caso o service retorne apenas a string da transcrição
-                transcricao = resultado.get("error")
-                titulo = None
-                thumbnail = None
-
+           
     # CENTRALIZADO: Histórico via service
     historico = cache_repo.listar()
     
     return render_template(
         'index.html',
-        transcricao=transcricao,
-        url=url,
-        titulo=titulo,
-        thumbnail=thumbnail,
+        resultado = resultado or {},
+        url = url,
         historico=historico
     )
 
