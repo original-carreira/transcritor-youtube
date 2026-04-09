@@ -17,10 +17,35 @@ class TranscriptionService:
         self.youtube = YouTubeClient()
     
     def process(self, url: str):
-        """Orquestra todo o fluxo de transcrição.
-        (Inicialmente, só vamos mover código existente para cá)"""
-        # TODO: mover lógica de transcript.py para cá
-        return self.obter_transcricao(url)
+        """Orquestra todo o fluxo de transcrição."""
+        resultado = self.obter_transcricao(url)
+    
+        # Caso já venha padronizado (cache futuro ou evolução)
+        if isinstance(resultado, dict) and "success" in resultado:
+            return resultado
+        
+        # Caso venha do fluxo atual (compatibilidade
+        if isinstance(resultado, dict):
+            return {
+                "text": resultado.get("transcricao") or resultado.get("trascricao"),
+                "segments": None,
+                "source": "cache",
+                "success": True,
+                "error": None,
+                "titulo": resultado.get("titulo"),
+                "thumbnail": resultado.get("thumbnail")
+                }
+            
+        # Caso seja string (erro ou fallback antigo)
+        return {
+            "text": None,
+            "segments": None,
+            "source": "api",
+            "success": False,
+            "error": resultado,
+            "titulo": None,
+            "thumbnail": None
+            }
 
     # ==============================
     # UTILITÁRIOS BÁSICOS
@@ -192,7 +217,7 @@ class TranscriptionService:
         if not video_id:
             return None
         qualidades = ["maxresdefault", "hqdefault", "mqdefault"]
-        return [f"https://youtube.com{video_id}/{q}.jpg" for q in qualidades]
+        return [f"https://img.youtube.com/vi/{video_id}/{q}.jpg" for q in qualidades]
 
     # ==============================
     # FUNÇÃO PRINCIPAL
@@ -207,7 +232,8 @@ class TranscriptionService:
         # Verifica se já existe no cache, CACHE FIRST (evita chamada externa)
         cache_item = self.cache.buscar_por_video_id(video_id)
         if cache_item:
-            return cache_item["transcricao"]
+            cache_item["_source"] = "cache"
+            return cache_item
             
         if not video_id:
             return "URL inválida."
@@ -244,7 +270,11 @@ class TranscriptionService:
             titulo = self.obter_titulo_video(url)
             thumbnail = self.obter_thumbnail(video_id)
             self.cache.adicionar(video_id, url, titulo, thumbnail, texto_final)
-            return texto_final
+            return {
+                "trascricao": texto_final,
+                "titulo": titulo,
+                "thumbnail": thumbnail
+                }
             
         except Exception as e:
             return f"Erro ao obter transcrição: {str(e)}"

@@ -43,16 +43,15 @@ def index():
             resultado = service.process(url)
 
             # Se o retorno for o dicionário do cache ou objeto completo
-            if isinstance(resultado, dict):
-                transcricao = resultado.get("transcricao")
+            if resultado.get("success"):
+                transcricao = resultado.get("text")
                 titulo = resultado.get("titulo")
                 thumbnail = resultado.get("thumbnail")
             else:
                 # Fallback caso o service retorne apenas a string da transcrição
-                transcricao = resultado
-                titulo = service.obter_titulo_video(url)
-                video_id = service.extrair_id(url)
-                thumbnail = service.obter_thumbnail(video_id)
+                transcricao = resultado.get("error")
+                titulo = None
+                thumbnail = None
 
     # CENTRALIZADO: Histórico via service
     historico = cache_repo.listar()
