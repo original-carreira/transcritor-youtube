@@ -4,6 +4,7 @@
 from flask import Flask, render_template, request, send_file, redirect, url_for
 from app.services.transcription_service import TranscriptionService # Import da classe
 from app.repositories.cache_repository import CacheRepository
+from app.exporters import get_exporter
 
 from docx import Document
 from docx.shared import Pt
@@ -79,17 +80,16 @@ def download_txt():
 
     # CENTRALIZADO: Limpeza de nome via service
     nome_arquivo = service.limpar_nome_arquivo(titulo or "transcricao")
-
-    buffer = io.BytesIO()
-    buffer.write(texto.encode('utf-8'))
-    buffer.seek(0)
-
+    
+    exporter = get_exporter("txt")
+    result = exporter.export(texto, titulo, nome_arquivo)
+    
     return send_file(
-        buffer,
+        result["buffer"],
         as_attachment=True,
-        download_name=f"{nome_arquivo}.txt",
-        mimetype="text/plain; charset=utf-8"
-    )
+        download_name=result["filename"],
+        mimetype=result["mimetype"]
+        )
 
 # ==============================
 # DOWNLOAD DOCX
@@ -105,25 +105,15 @@ def download_docx():
 
     # CENTRALIZADO: Limpeza de nome via service
     nome_arquivo = service.limpar_nome_arquivo(titulo or "transcricao")
-
-    document = Document()
-    document.add_heading(titulo or "Transcrição", 0)
-
-    for paragrafo in texto.split("\n\n"):
-        if paragrafo.strip():
-            p = document.add_paragraph(paragrafo.strip())
-            p.paragraph_format.space_after = Pt(12)
-
-    buffer = io.BytesIO()
-    document.save(buffer)
-    buffer.seek(0)
-
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f"{nome_arquivo}.docx",
-        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+    
+    exporter = get_exporter("docx")
+    result = exporter.export(texto, titulo, nome_arquivo)
+    
+    return send_file(result["buffer"],
+                     as_attachment=True,
+                     download_name=result["filename"],
+                     mimetype=result["mimetype"]
+                     )
 
 # ==============================
 # LIMPAR HISTÓRICO
