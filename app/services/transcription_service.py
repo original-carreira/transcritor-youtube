@@ -284,8 +284,12 @@ class TranscriptionService:
                 logger.warning("Texto vazio após processamento")
                 return "Transcrição vazia após processamento."
 
-            titulo = self.obter_titulo_video(url)
-            thumbnail = self.obter_thumbnail(video_id)
+            metadata = self.youtube.fetch_video_metadata(video_id)
+
+            titulo = metadata.get("titulo")
+            thumbnail = metadata.get("thumbnail")
+            
+            
 
             # ==============================
             # CACHE SAVE

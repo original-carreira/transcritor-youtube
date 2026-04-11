@@ -73,6 +73,10 @@ logger = setup_logger()
 def index():
     resultado = None
     url = None
+    
+    # Defaults (IMPORTANTE para GET)
+    translate = False
+    target_lang = 'en'
 
     if request.method == 'POST':
         url = request.form.get('url')
@@ -119,7 +123,9 @@ def index():
         'index.html',
         resultado=resultado or {},
         url=url,
-        historico=historico
+        historico=historico,
+        translate=translate,
+        target_lang=target_lang
     )
 
 

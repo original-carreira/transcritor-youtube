@@ -5,24 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Título da aba do navegador -->
     <title>Transcrição YouTube</title>
     
-    <!-- Link para o arquivo CSS de estilos -->
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
 
 <body>
 
-<!-- Container principal da aplicação -->
 <div class="container">
 
-    <!-- Título principal da aplicação -->
     <h1>Transcritor de Vídeos do YouTube</h1>
 
-    <!-- FORM PRINCIPAL -->
+    <!-- ==============================
+         FORM PRINCIPAL
+    ============================== -->
     <form method="POST" onsubmit="mostrarLoading()">
+
         <label for="url">URL do Vídeo:</label><br><br>
 
         <input type="text" id="url" name="url" 
@@ -30,50 +29,81 @@
                required 
                placeholder="Cole a URL do vídeo aqui">
 
-        <br><br>
-
         <!-- ==============================
-         OPÇÃO DE TRADUÇÃO
+             TRADUÇÃO
         ============================== -->
         <div class="traducao-box">
-            <!-- Checkbox para ativar tradução -->
+
             <label class="checkbox-label">
-                <input type="checkbox" name="translate" id="translate"
-                {% if request.form.get('translate') %}checked{% endif %}>
+                <input type="checkbox" name="translate"
+                       {% if translate %}checked{% endif %}>
                 Traduzir texto
             </label>
 
-            <!-- Seleção de idioma -->
             <select name="target_lang" class="select-lang">
-                <option value="EN" {% if request.form.get('target_lang') == 'EN' %}selected{% endif %}>Inglês</option>
-                <option value="PT" {% if request.form.get('target_lang') == 'PT' %}selected{% endif %}>Português</option>
-                <option value="ES" {% if request.form.get('target_lang') == 'ES' %}selected{% endif %}>Espanhol</option>
-                <option value="FR" {% if request.form.get('target_lang') == 'FR' %}selected{% endif %}>Francês</option>
+                <option value="en" {% if target_lang == 'en' %}selected{% endif %}>Inglês</option>
+                <option value="pt" {% if target_lang == 'pt' %}selected{% endif %}>Português</option>
+                <option value="es" {% if target_lang == 'es' %}selected{% endif %}>Espanhol</option>
+                <option value="fr" {% if target_lang == 'fr' %}selected{% endif %}>Francês</option>
             </select>
 
         </div>
 
-        <!-- Botão para enviar o formulário e obter a transcrição -->
+        <br>
+
         <button type="submit" id="btn-submit">Obter Transcrição</button>
         <span id="loading">Processando...</span>
     </form>
 
-
-    <!-- ✅ ERRO AQUI -->
-     {% if resultado and not resultado.success %}
+    <!-- ==============================
+         ERRO
+    ============================== -->
+    {% if resultado and not resultado.success %}
         <div class="erro">
             {{ resultado.error }}
-         </div>
+        </div>
     {% endif %}
 
-    <!-- Título do vídeo -->
+    <!-- ==============================
+         RESULTADO
+    ============================== -->
     {% if resultado and resultado.success %}
-        <h2 style="text-align:center;">{{ resultado.titulo }}</h2>
-        <p class="source-info"> Origem: <strong>{{ resultado.source }}</strong>
-</p>
+
+        <h2>{{ resultado.titulo }}</h2>
+
+        <!-- Feedback de processamento -->
+        <p class="source-info">
+            {% if resultado.source == 'cache' %}
+                ⚡ Resultado carregado rapidamente
+            {% else %}
+                ⏳ Processamento concluído
+            {% endif %}
+        </p>
+
+        <!-- Feedback de tradução -->
+        <div class="info-processamento">
+
+            {% if translate %}
+                <span class="badge traducao">
+                    🌍 Tradução ativada ({{ target_lang|upper }})
+                </span>
+
+                <p class="info-texto">
+                    Texto traduzido para {{ target_lang|upper }}
+                </p>
+            {% else %}
+                <p class="info-texto">
+                    Texto original (sem tradução)
+                </p>
+            {% endif %}
+
+        </div>
+
     {% endif %}
 
-    <!-- Thumbnail do vídeo, com fallback para imagem genérica -->
+    <!-- ==============================
+         THUMBNAIL
+    ============================== -->
     {% if resultado and resultado.thumbnail and resultado.thumbnail|length > 0 %}
         <img 
             src="{{ resultado.thumbnail[0] }}"
@@ -81,82 +111,64 @@
             alt="Thumbnail do vídeo">
     {% endif %}
 
-    <!-- Exibe a transcrição se estiver disponível -->
+    <!-- ==============================
+         TRANSCRIÇÃO
+    ============================== -->
     {% if resultado and resultado.success %}
 
-        <h3 style="margin-top:20px;">Transcrição:</h3>
+        <h3>Transcrição:</h3>
 
-        <!-- FORM DOWNLOAD -->
         <form method="POST">
-
-            <!-- IMPORTANTE: agora envia título -->
             <input type="hidden" name="url" value="{{ url }}">
             <input type="hidden" name="titulo" value="{{ resultado.titulo }}">
 
-            <!-- textarea sem identação extra -->
             <textarea name="texto" class="caixa-texto" rows="20" readonly>{{ resultado.text | e }}</textarea>
 
-            <!-- Botões para baixar em TXT, DOCX e copiar para área de transferência -->
             <div class="botoes">
-                <button type="submit" formaction="/download_txt">Baixar TXT</button>
-                <button type="submit" formaction="/download_docx">Baixar Word (.docx)</button>
-                
-                <button type="button" onclick="copiarTexto()">
-                    Copiar Texto
-                </button>
-
+                <button type="submit" formaction="/download_txt">TXT</button>
+                <button type="submit" formaction="/download_docx">DOCX</button>
+                <button type="button" onclick="copiarTexto()">Copiar</button>
                 <span id="copiado-msg">Copiado!</span>
             </div>
-
         </form>
 
-        <!-- RESET -->
         <div class="botoes-topo">
-            <form method="GET" action="/">
+            <form method="GET">
                 <button class="btn-secondary">Nova Transcrição</button>
             </form>
-        
         </div>
 
     {% endif %}
 
-<!-- Exibe o histórico de transcrições anteriores, se houver -->
-{% if historico %}
-<div class="historico-box">
+    <!-- ==============================
+         HISTÓRICO
+    ============================== -->
+    {% if historico %}
+    <div class="historico-box">
 
-    <div class="historico-header">
-        <h3>📜 Histórico</h3>
+        <div class="historico-header">
+            <h3>📜 Histórico</h3>
 
-        <!-- Botão limpar visível aqui também -->
-        <form method="POST" action="/limpar_historico"
-              onsubmit="return confirm('Deseja limpar todo o histórico? Esta ação não pode ser desfeita.');">
-            <button class="btn-danger">Limpar</button>
-        </form>
-    </div>
-
-    <div class="historico-lista">
-        {% for item in historico %}
-            <form method="POST">
-                <input type="hidden" name="url" value="{{ item.url }}">
-
-                <button class="historico-item">
-                    {{ item.titulo }}
-                </button>
+            <form method="POST" action="/limpar_historico"
+                  onsubmit="return confirm('Deseja limpar o histórico?');">
+                <button class="btn-danger">Limpar</button>
             </form>
-        {% endfor %}
+        </div>
+
+        <div class="historico-lista">
+            {% for item in historico %}
+                <form method="POST">
+                    <input type="hidden" name="url" value="{{ item.url }}">
+                    <button class="historico-item">{{ item.titulo }}</button>
+                </form>
+            {% endfor %}
+        </div>
+
     </div>
+    {% endif %}
 
 </div>
-{% endif %}
 
-<!-- Mensagem para quando não houver histórico disponível -->
-{% if not historico %}
-<p style="margin-top:20px; color:#666;">
-    Nenhum histórico disponível ainda.
-</p>
-{% endif %}
-
-<!-- Scripts JavaScript para funcionalidades de copiar texto e mostrar loading -->
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>

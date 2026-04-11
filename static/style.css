@@ -316,7 +316,7 @@ img {
 .traducao-box {
     margin-top: 15px;
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
     flex-wrap: wrap;
 }
@@ -332,4 +332,32 @@ img {
     padding: 8px;
     border-radius: 6px;
     border: 1px solid #ccc;
+}
+
+/* ==============================
+   UX — FEEDBACK
+   ============================== */
+
+.info-processamento {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.info-texto {
+    font-size: 14px;
+    color: #555;
+    margin-top: 5px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.badge.traducao {
+    background-color: #e7f5ff;
+    color: #1c7ed6;
 }
