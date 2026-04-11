@@ -39,12 +39,35 @@ class TranscriptionService:
         # Caso sucesso
         if isinstance(resultado, dict):
             texto = resultado.get("transcricao")
+            segments = resultado.get("segments")
 
             origem = "Cache Local" if resultado.get("from_cache") else "YouTube API"
 
+            # ==============================
+            # TRADUÇÃO (TEXT + SEGMENTS)
+            # ==============================
+            if translate and self.translator and texto:
+                try:
+                    # Traduz texto principal
+                    texto_traduzido = self.translator.traduzir(
+                        texto,
+                        source_lang="pt",
+                        target_lang=target_lang
+                    )
+
+                    if texto_traduzido:
+                        texto = texto_traduzido
+
+                    # Traduz segments (batch)
+                    if segments:
+                        segments = self._translate_segments(segments, target_lang)
+
+                except Exception:
+                    pass  # fail-safe
+
             return {
                 "text": texto,
-                "segments": None,
+                "segments": segments,
                 "source": origem,
                 "success": True if texto else False,
                 "error": None if texto else "Transcrição vazia",
@@ -62,6 +85,46 @@ class TranscriptionService:
             "titulo": None,
             "thumbnail": None
         }
+
+    # ==============================
+    # TRADUÇÃO DE SEGMENTS (BATCH)
+    # ==============================
+    def _translate_segments(self, segments, target_lang):
+        if not segments:
+            return segments
+
+        try:
+            textos = [seg["text"] for seg in segments]
+
+            separador = "\n|||SEG|||\n"
+            texto_unico = separador.join(textos)
+
+            texto_traduzido = self.translator.traduzir(
+                texto_unico,
+                source_lang="pt",
+                target_lang=target_lang
+            )
+
+            if not texto_traduzido:
+                return segments
+
+            textos_traduzidos = texto_traduzido.split(separador)
+
+            if len(textos_traduzidos) != len(segments):
+                return segments
+
+            novos_segments = []
+            for seg, texto in zip(segments, textos_traduzidos):
+                novos_segments.append({
+                    "start": seg["start"],
+                    "end": seg["end"],
+                    "text": texto.strip()
+                })
+
+            return novos_segments
+
+        except Exception:
+            return segments
 
     # ==============================
     # UTILITÁRIOS
@@ -185,18 +248,11 @@ class TranscriptionService:
         if cache_item:
             texto = cache_item.get("transcricao")
 
-            # ==============================
-            # CACHE DE TRADUÇÃO
-            # ==============================
-            if target_lang and target_lang != "pt" and self.translator:
-                traducao = self.cache.obter_traducao(video_id, target_lang)
-                if traducao:
-                    texto = traducao
-
             return {
                 "transcricao": texto,
                 "titulo": cache_item.get("titulo"),
                 "thumbnail": cache_item.get("thumbnail"),
+                "segments": None,
                 "from_cache": True
             }
 
@@ -233,36 +289,27 @@ class TranscriptionService:
             thumbnail = self.obter_thumbnail(video_id)
 
             # ==============================
+            # SEGMENTS FORMATADOS
+            # ==============================
+            segments = [
+                {
+                    "start": item["start"],
+                    "end": item["start"] + item.get("duration", 0),
+                    "text": item["text"]
+                }
+                for item in transcript_list
+            ]
+
+            # ==============================
             # 4. CACHE (TRANSCRIÇÃO)
             # ==============================
             self.cache.adicionar(video_id, url, titulo, thumbnail, texto_final)
 
-            texto_saida = texto_final
-
-            # ==============================
-            # 5. CACHE + TRADUÇÃO
-            # ==============================
-            if target_lang and target_lang != "pt" and self.translator:
-
-                traducao = self.cache.obter_traducao(video_id, target_lang)
-
-                if traducao:
-                    texto_saida = traducao
-                else:
-                    texto_traduzido = self.translator.traduzir(
-                        texto_final,
-                        source_lang="pt",
-                        target_lang=target_lang
-                    )
-
-                    if texto_traduzido:
-                        self.cache.salvar_traducao(video_id, target_lang, texto_traduzido)
-                        texto_saida = texto_traduzido
-
             return {
-                "transcricao": texto_saida,
+                "transcricao": texto_final,
                 "titulo": titulo,
                 "thumbnail": thumbnail,
+                "segments": segments,
                 "from_cache": False
             }
 
