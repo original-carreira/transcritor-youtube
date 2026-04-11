@@ -6,7 +6,10 @@ from app.clients.youtube_client import YouTubeClient
 
 import requests
 import re
+import logging
 import unicodedata
+
+logger = logging.getLogger(__name__)
 
 
 class TranscriptionService:
@@ -31,12 +34,13 @@ class TranscriptionService:
         """
         Orquestra todo o fluxo e padroniza a resposta.
         """
+        logger.info(f"Process iniciado | url={url} | translate={translate} | target_lang={target_lang}")
+
         resultado = self.obter_transcricao(
             url,
             target_lang=target_lang if translate else None
         )
 
-        # Caso sucesso
         if isinstance(resultado, dict):
             texto = resultado.get("transcricao")
             segments = resultado.get("segments")
@@ -47,8 +51,9 @@ class TranscriptionService:
             # TRADUÇÃO (TEXT + SEGMENTS)
             # ==============================
             if translate and self.translator and texto:
+                logger.info(f"Tradução ativada | target_lang={target_lang}")
+
                 try:
-                    # Traduz texto principal
                     texto_traduzido = self.translator.traduzir(
                         texto,
                         source_lang="pt",
@@ -58,12 +63,11 @@ class TranscriptionService:
                     if texto_traduzido:
                         texto = texto_traduzido
 
-                    # Traduz segments (batch)
                     if segments:
                         segments = self._translate_segments(segments, target_lang)
 
                 except Exception:
-                    pass  # fail-safe
+                    logger.warning("Falha na tradução no process(), mantendo texto original")
 
             return {
                 "text": texto,
@@ -75,7 +79,8 @@ class TranscriptionService:
                 "thumbnail": resultado.get("thumbnail")
             }
 
-        # Caso erro (string)
+        logger.error(f"Erro no processamento: {resultado}")
+
         return {
             "text": None,
             "segments": None,
@@ -94,6 +99,8 @@ class TranscriptionService:
             return segments
 
         try:
+            logger.info(f"Traduzindo segments | quantidade={len(segments)}")
+
             textos = [seg["text"] for seg in segments]
 
             separador = "\n|||SEG|||\n"
@@ -106,11 +113,13 @@ class TranscriptionService:
             )
 
             if not texto_traduzido:
+                logger.warning("Falha ao traduzir segments (texto vazio)")
                 return segments
 
             textos_traduzidos = texto_traduzido.split(separador)
 
             if len(textos_traduzidos) != len(segments):
+                logger.warning("Mismatch na tradução de segments")
                 return segments
 
             novos_segments = []
@@ -124,6 +133,7 @@ class TranscriptionService:
             return novos_segments
 
         except Exception:
+            logger.warning("Erro na tradução de segments")
             return segments
 
     # ==============================
@@ -212,61 +222,49 @@ class TranscriptionService:
         return paragrafos
 
     # ==============================
-    # METADADOS
-    # ==============================
-    def obter_titulo_video(self, url):
-        try:
-            response = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-            html = response.text
-            match = re.search(r'<title>(.*?)</title>', html)
-            if match:
-                return match.group(1).replace(" - YouTube", "").strip()
-            return "titulo_indisponivel"
-        except Exception:
-            return "titulo_indisponivel"
-
-    def obter_thumbnail(self, video_id):
-        if not video_id:
-            return None
-        qualidades = ["maxresdefault", "hqdefault", "mqdefault"]
-        return [f"https://img.youtube.com/vi/{video_id}/{q}.jpg" for q in qualidades]
-
-    # ==============================
     # PIPELINE PRINCIPAL
     # ==============================
     def obter_transcricao(self, url, target_lang=None):
         video_id = self.extrair_id(url)
 
+        logger.info(f"Iniciando processamento | video_id={video_id}")
+
         if not video_id:
+            logger.warning("URL inválida fornecida")
             return "URL inválida."
 
         # ==============================
-        # 1. CACHE (TRANSCRIÇÃO)
+        # CACHE
         # ==============================
         cache_item = self.cache.buscar_por_video_id(video_id)
 
         if cache_item:
-            texto = cache_item.get("transcricao")
+            logger.info(f"Cache HIT | video_id={video_id}")
 
             return {
-                "transcricao": texto,
+                "transcricao": cache_item.get("transcricao"),
                 "titulo": cache_item.get("titulo"),
                 "thumbnail": cache_item.get("thumbnail"),
                 "segments": None,
                 "from_cache": True
             }
 
+        logger.info(f"Cache MISS | video_id={video_id}")
+
         try:
             # ==============================
-            # 2. EXTRAÇÃO
+            # EXTRAÇÃO
             # ==============================
+            logger.info("Buscando transcrição via YouTubeClient")
+
             transcript_list = self.youtube.fetch_transcript(video_id)
 
             if not transcript_list:
+                logger.warning("Nenhuma transcrição encontrada")
                 return "Nenhuma transcrição encontrada."
 
             # ==============================
-            # 3. PROCESSAMENTO
+            # PROCESSAMENTO
             # ==============================
             paragrafos = self.agrupar_por_tempo(transcript_list)
             processados = []
@@ -283,35 +281,27 @@ class TranscriptionService:
             texto_final = "\n\n".join(processados)
 
             if not texto_final:
+                logger.warning("Texto vazio após processamento")
                 return "Transcrição vazia após processamento."
 
             titulo = self.obter_titulo_video(url)
             thumbnail = self.obter_thumbnail(video_id)
 
             # ==============================
-            # SEGMENTS FORMATADOS
+            # CACHE SAVE
             # ==============================
-            segments = [
-                {
-                    "start": item["start"],
-                    "end": item["start"] + item.get("duration", 0),
-                    "text": item["text"]
-                }
-                for item in transcript_list
-            ]
+            logger.info(f"Salvando no cache | video_id={video_id}")
 
-            # ==============================
-            # 4. CACHE (TRANSCRIÇÃO)
-            # ==============================
             self.cache.adicionar(video_id, url, titulo, thumbnail, texto_final)
 
             return {
                 "transcricao": texto_final,
                 "titulo": titulo,
                 "thumbnail": thumbnail,
-                "segments": segments,
+                "segments": None,
                 "from_cache": False
             }
 
         except Exception as e:
+            logger.error(f"Erro na API do YouTube: {str(e)}")
             return f"Erro na API do YouTube: {str(e)}"

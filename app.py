@@ -18,6 +18,7 @@ from app.infra.translators.translator_factory import get_translator
 from app.services.transcription_service import TranscriptionService
 from app.repositories.cache_repository import CacheRepository
 from app.utils.file_utils import sanitize_filename
+from app.utils.logger import setup_logger
 from app.exporters import get_exporter
 
 
@@ -59,6 +60,9 @@ service = TranscriptionService(translator=translator)
 
 # Repositório de cache (histórico)
 cache_repo = CacheRepository()
+
+# Logger
+logger = setup_logger()
 
 
 # ==============================
