@@ -71,3 +71,32 @@ class CacheRepository:
         """Lista histórico (mais recente primeiro)."""
         historico = self.carregar()
         return list(reversed(historico))
+    
+    def obter_traducao(self, video_id, target_lang):
+        """Busca item no cache."""
+        item = self.buscar_por_video_id(video_id)
+        
+        if not item:
+            return None
+
+        # GARANTE COMPATIBILIDADE
+        if "translations" not in item:
+            item["translations"] = {}
+
+        return item["translations"].get(target_lang)
+    
+    def salvar_traducao(self, video_id, target_lang, texto_traduzido):
+        """ Adiciona nova tradução evitando duplicação. """
+        historico = self.carregar()
+
+        for item in historico:
+            if item.get("video_id") == video_id:
+                
+                # GARANTE COMPATIBILIDADE
+                if "translations" not in item:
+                    item["translations"] = {}
+
+                item["translations"][target_lang] = texto_traduzido
+                break
+
+        self.salvar(historico)
