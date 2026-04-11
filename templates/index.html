@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <!-- Configurações básicas da página -->
+    <!-- ==============================
+         META / CONFIG
+    ============================== -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
@@ -15,6 +17,9 @@
 
 <div class="container">
 
+    <!-- ==============================
+         TÍTULO
+    ============================== -->
     <h1>Transcritor de Vídeos do YouTube</h1>
 
     <!-- ==============================
@@ -30,26 +35,42 @@
                placeholder="Cole a URL do vídeo aqui">
 
         <!-- ==============================
-             TRADUÇÃO
+             CONFIGURAÇÕES DE PROCESSAMENTO
         ============================== -->
         <div class="traducao-box">
 
-            <label class="checkbox-label">
-                <input type="checkbox" name="translate"
-                       {% if translate %}checked{% endif %}>
-                Traduzir texto
-            </label>
+            <!-- Grupo 1: Tradução -->
+            <div class="grupo-opcoes">
 
-            <select name="target_lang" class="select-lang">
-                <option value="en" {% if target_lang == 'en' %}selected{% endif %}>Inglês</option>
-                <option value="pt" {% if target_lang == 'pt' %}selected{% endif %}>Português</option>
-                <option value="es" {% if target_lang == 'es' %}selected{% endif %}>Espanhol</option>
-                <option value="fr" {% if target_lang == 'fr' %}selected{% endif %}>Francês</option>
-            </select>
+                <label class="checkbox-label">
+                    <input type="checkbox" name="translate"
+                           {% if translate %}checked{% endif %}>
+                    Traduzir texto
+                </label>
+
+                <select name="target_lang" class="select-lang">
+                    <option value="en" {% if target_lang == 'en' %}selected{% endif %}>Inglês</option>
+                    <option value="pt" {% if target_lang == 'pt' %}selected{% endif %}>Português</option>
+                    <option value="es" {% if target_lang == 'es' %}selected{% endif %}>Espanhol</option>
+                    <option value="fr" {% if target_lang == 'fr' %}selected{% endif %}>Francês</option>
+                </select>
+
+            </div>
+
+            <!-- Grupo 2: Refinamento -->
+            <div class="grupo-opcoes">
+
+                <label class="checkbox-label">
+                    <input type="checkbox" name="post_process"
+                           {% if post_process %}checked{% endif %}>
+                    Refinar texto
+                </label>
+
+            </div>
 
         </div>
 
-        <br>
+        <br><br>
 
         <button type="submit" id="btn-submit">Obter Transcrição</button>
         <span id="loading">Processando...</span>
@@ -80,22 +101,32 @@
             {% endif %}
         </p>
 
-        <!-- Feedback de tradução -->
+        <!-- ==============================
+             FEEDBACK DE PROCESSAMENTO
+        ============================== -->
         <div class="info-processamento">
 
+            <!-- Badges -->
             {% if translate %}
                 <span class="badge traducao">
-                    🌍 Tradução ativada ({{ target_lang|upper }})
+                    🌍 Tradução ({{ target_lang|upper }})
                 </span>
-
-                <p class="info-texto">
-                    Texto traduzido para {{ target_lang|upper }}
-                </p>
-            {% else %}
-                <p class="info-texto">
-                    Texto original (sem tradução)
-                </p>
             {% endif %}
+
+            {% if post_process %}
+                <span class="badge traducao">
+                    ✨ Texto refinado
+                </span>
+            {% endif %}
+
+            <!-- Texto explicativo -->
+            <p class="info-texto">
+                {% if translate %}
+                    Texto traduzido para {{ target_lang|upper }}
+                {% else %}
+                    Texto original (sem tradução)
+                {% endif %}
+            </p>
 
         </div>
 
@@ -159,7 +190,9 @@
             {% for item in historico %}
                 <form method="POST">
                     <input type="hidden" name="url" value="{{ item.url }}">
-                    <button class="historico-item">{{ item.titulo }}</button>
+                    <button class="historico-item">
+                        {{ item.titulo }}
+                    </button>
                 </form>
             {% endfor %}
         </div>
@@ -169,6 +202,9 @@
 
 </div>
 
+<!-- ==============================
+     SCRIPTS
+============================== -->
 <script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>

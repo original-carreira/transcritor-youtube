@@ -47,18 +47,18 @@ app = Flask(
     static_folder=resource_path("static")
 )
 
+
 # ==============================
-# BOOTSTRAP 
+# BOOTSTRAP
 # ==============================
 
-# 🔥 Aqui é onde definimos QUAL provider será usado
-# Pode trocar facilmente: "simple" | "advanced"
+# Define provider de tradução
 translator = get_translator("advanced")
 
-# Service principal (injeção do translator)
+# Service principal
 service = TranscriptionService(translator=translator)
 
-# Repositório de cache (histórico)
+# Cache (histórico)
 cache_repo = CacheRepository()
 
 # Logger
@@ -73,10 +73,13 @@ logger = setup_logger()
 def index():
     resultado = None
     url = None
-    
-    # Defaults (IMPORTANTE para GET)
+
+    # ==============================
+    # DEFAULTS (IMPORTANTE)
+    # ==============================
     translate = False
     target_lang = 'en'
+    post_process = False  # 🔥 CORREÇÃO DO BUG
 
     if request.method == 'POST':
         url = request.form.get('url')
@@ -98,24 +101,24 @@ def index():
             }
         else:
             # ==============================
-            # CONFIG TRADUÇÃO
+            # CONFIGURAÇÕES DE PROCESSAMENTO
             # ==============================
             translate = request.form.get('translate') == 'on'
-
-            # ⚠️ normaliza idioma (minúsculo)
             target_lang = (request.form.get('target_lang') or 'en').lower()
+            post_process = request.form.get('post_process') == 'on'
 
             # ==============================
-            # EXECUÇÃO DO PIPELINE
+            # EXECUÇÃO
             # ==============================
             resultado = service.process(
                 url,
                 translate=translate,
-                target_lang=target_lang
+                target_lang=target_lang,
+                post_process=post_process
             )
 
     # ==============================
-    # HISTÓRICO (CACHE)
+    # HISTÓRICO
     # ==============================
     historico = cache_repo.listar()
 
@@ -125,7 +128,8 @@ def index():
         url=url,
         historico=historico,
         translate=translate,
-        target_lang=target_lang
+        target_lang=target_lang,
+        post_process=post_process
     )
 
 
@@ -141,7 +145,7 @@ def download_txt():
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    # Limpeza de nome centralizada no service
+    # Sanitização via utilitário (camada UI)
     nome_arquivo = sanitize_filename(titulo or "transcricao")
 
     exporter = get_exporter("txt")
@@ -167,7 +171,6 @@ def download_docx():
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    # Limpeza de nome centralizada no service
     nome_arquivo = sanitize_filename(titulo or "transcricao")
 
     exporter = get_exporter("docx")
@@ -184,10 +187,9 @@ def download_docx():
 # ==============================
 # DOWNLOAD SRT
 # ==============================
+
 @app.route('/download_srt', methods=['POST'])
 def download_srt():
-    import json
-
     segments_json = request.form.get('segments')
     titulo = request.form.get('titulo', '').strip()
 
@@ -196,7 +198,6 @@ def download_srt():
 
     segments = json.loads(segments_json)
 
-    # Limpeza de nome centralizada no service
     nome_arquivo = sanitize_filename(titulo or "transcricao")
 
     exporter = get_exporter("srt")

@@ -361,3 +361,9 @@ img {
     background-color: #e7f5ff;
     color: #1c7ed6;
 }
+
+.grupo-opcoes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
