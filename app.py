@@ -9,6 +9,7 @@ import time
 import socket
 import webbrowser
 from flask import Flask, render_template, request, send_file, redirect, url_for
+from app.infra.translators.translator_factory import get_translator
 
 # Imports do seu projeto
 from app.services.transcription_service import TranscriptionService
@@ -40,6 +41,8 @@ app = Flask(
     )
 service = TranscriptionService() # Instância única para o app
 cache_repo = CacheRepository()   # Cria a instância do repositório
+translator = get_translator("simple")  # ou None
+service = TranscriptionService(translator=translator)
 
 # ==============================
 # ROTA PRINCIPAL
@@ -66,8 +69,14 @@ def index():
                 "thumbnail": None
                 }      
         else:
-            # CENTRALIZADO: O service.process agora resolve tudo (cache ou nova extração)
-            resultado = service.process(url)
+            translate = request.form.get('translate') == 'on'
+            target_lang = request.form.get('target_lang') or 'EN'
+
+            resultado = service.process(
+                url,
+                translate=translate,
+                target_lang=target_lang
+                )
            
     # CENTRALIZADO: Histórico via service
     historico = cache_repo.listar()

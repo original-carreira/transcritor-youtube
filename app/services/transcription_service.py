@@ -12,11 +12,12 @@ import json
 import os
 
 class TranscriptionService:
-    def __init__(self):
+    def __init__(self, translator=None):
         self.cache = CacheRepository()
         self.youtube = YouTubeClient()
+        self.translator = translator
     
-    def process(self, url: str):
+    def process(self, url: str, translate: bool = False, target_lang: str | None = None):
         """Orquestra todo o fluxo de transcrição."""
         resultado = self.obter_transcricao(url)
         
@@ -24,6 +25,19 @@ class TranscriptionService:
         if isinstance(resultado, dict):
             texto = resultado.get("transcricao") or resultado.get("text")
             
+            # ==============================
+            # TRADUÇÃO (OPCIONAL)
+            # ==============================
+            if translate and self.translator and texto:
+                try:
+                    texto_traduzido = self.translator.translate(texto, target_lang)
+                    if texto_traduzido:
+                        texto = texto_traduzido
+                except Exception:
+                    # fail-safe: mantém texto original
+                    pass
+            
+                                
             # LÓGICA DE ORIGEM: 
             # Se o dicionário tiver 'video_id', sabemos que veio do nosso CacheRepository
             origem = "Cache Local" if "video_id" in resultado else "YouTube API"

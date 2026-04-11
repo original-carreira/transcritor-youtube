@@ -32,6 +32,27 @@
 
         <br><br>
 
+        <!-- ==============================
+         OPÇÃO DE TRADUÇÃO
+        ============================== -->
+        <div class="traducao-box">
+            <!-- Checkbox para ativar tradução -->
+            <label class="checkbox-label">
+                <input type="checkbox" name="translate" id="translate"
+                {% if request.form.get('translate') %}checked{% endif %}>
+                Traduzir texto
+            </label>
+
+            <!-- Seleção de idioma -->
+            <select name="target_lang" class="select-lang">
+                <option value="EN" {% if request.form.get('target_lang') == 'EN' %}selected{% endif %}>Inglês</option>
+                <option value="PT" {% if request.form.get('target_lang') == 'PT' %}selected{% endif %}>Português</option>
+                <option value="ES" {% if request.form.get('target_lang') == 'ES' %}selected{% endif %}>Espanhol</option>
+                <option value="FR" {% if request.form.get('target_lang') == 'FR' %}selected{% endif %}>Francês</option>
+            </select>
+
+        </div>
+
         <!-- Botão para enviar o formulário e obter a transcrição -->
         <button type="submit" id="btn-submit">Obter Transcrição</button>
         <span id="loading">Processando...</span>
