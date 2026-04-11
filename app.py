@@ -3,31 +3,35 @@
 # ==============================
 import os
 import sys
-import io
 import threading
 import time
 import socket
 import webbrowser
+
 from flask import Flask, render_template, request, send_file, redirect, url_for
+
+# Infra
 from app.infra.translators.translator_factory import get_translator
 
-# Imports do seu projeto
+# Projeto
 from app.services.transcription_service import TranscriptionService
 from app.repositories.cache_repository import CacheRepository
 from app.exporters import get_exporter
+
 
 # ==============================
 # UTILITÁRIOS (Compatibilidade com Executável)
 # ==============================
 def resource_path(relative_path):
-    """ Obtém o caminho absoluto para recursos, compatível com PyInstaller """
+    """
+    Obtém o caminho absoluto para recursos,
+    compatível com PyInstaller.
+    """
     try:
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
-
-
 
 
 # ==============================
@@ -38,11 +42,22 @@ app = Flask(
     __name__,
     template_folder=resource_path("templates"),
     static_folder=resource_path("static")
-    )
-service = TranscriptionService() # Instância única para o app
-cache_repo = CacheRepository()   # Cria a instância do repositório
-translator = get_translator("simple")  # ou None
+)
+
+# ==============================
+# BOOTSTRAP 
+# ==============================
+
+# 🔥 Aqui é onde definimos QUAL provider será usado
+# Pode trocar facilmente: "simple" | "advanced"
+translator = get_translator("advanced")
+
+# Service principal (injeção do translator)
 service = TranscriptionService(translator=translator)
+
+# Repositório de cache (histórico)
+cache_repo = CacheRepository()
+
 
 # ==============================
 # ROTA PRINCIPAL
@@ -58,6 +73,9 @@ def index():
         if url:
             url = url.strip()
 
+        # ==============================
+        # VALIDAÇÃO
+        # ==============================
         if not url:
             resultado = {
                 "text": None,
@@ -67,26 +85,37 @@ def index():
                 "error": "Por favor, insira uma URL do YouTube.",
                 "titulo": None,
                 "thumbnail": None
-                }      
+            }
         else:
+            # ==============================
+            # CONFIG TRADUÇÃO
+            # ==============================
             translate = request.form.get('translate') == 'on'
-            target_lang = request.form.get('target_lang') or 'EN'
 
+            # ⚠️ normaliza idioma (minúsculo)
+            target_lang = (request.form.get('target_lang') or 'en').lower()
+
+            # ==============================
+            # EXECUÇÃO DO PIPELINE
+            # ==============================
             resultado = service.process(
                 url,
                 translate=translate,
                 target_lang=target_lang
-                )
-           
-    # CENTRALIZADO: Histórico via service
+            )
+
+    # ==============================
+    # HISTÓRICO (CACHE)
+    # ==============================
     historico = cache_repo.listar()
-    
+
     return render_template(
         'index.html',
-        resultado = resultado or {},
-        url = url,
+        resultado=resultado or {},
+        url=url,
         historico=historico
     )
+
 
 # ==============================
 # DOWNLOAD TXT
@@ -100,18 +129,19 @@ def download_txt():
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    # CENTRALIZADO: Limpeza de nome via service
+    # Limpeza de nome centralizada no service
     nome_arquivo = service.limpar_nome_arquivo(titulo or "transcricao")
-    
+
     exporter = get_exporter("txt")
     result = exporter.export(texto, titulo, nome_arquivo)
-    
+
     return send_file(
         result["buffer"],
         as_attachment=True,
         download_name=result["filename"],
         mimetype=result["mimetype"]
-        )
+    )
+
 
 # ==============================
 # DOWNLOAD DOCX
@@ -125,17 +155,18 @@ def download_docx():
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    # CENTRALIZADO: Limpeza de nome via service
     nome_arquivo = service.limpar_nome_arquivo(titulo or "transcricao")
-    
+
     exporter = get_exporter("docx")
     result = exporter.export(texto, titulo, nome_arquivo)
-    
-    return send_file(result["buffer"],
-                     as_attachment=True,
-                     download_name=result["filename"],
-                     mimetype=result["mimetype"]
-                     )
+
+    return send_file(
+        result["buffer"],
+        as_attachment=True,
+        download_name=result["filename"],
+        mimetype=result["mimetype"]
+    )
+
 
 # ==============================
 # LIMPAR HISTÓRICO
@@ -143,12 +174,12 @@ def download_docx():
 
 @app.route('/limpar_historico', methods=['POST'])
 def limpar_historico():
-    # CENTRALIZADO: Limpeza via service
     cache_repo.limpar()
     return redirect(url_for('index'))
 
+
 # ==============================
-# EXECUÇÃO LOCAL (Mantido original)
+# EXECUÇÃO LOCAL
 # ==============================
 
 def servidor_esta_pronto(host="127.0.0.1", port=5000):
@@ -159,9 +190,11 @@ def servidor_esta_pronto(host="127.0.0.1", port=5000):
         except OSError:
             time.sleep(0.3)
 
+
 def abrir_navegador():
     servidor_esta_pronto()
     webbrowser.open("http://127.0.0.1:5000")
+
 
 if __name__ == '__main__':
     threading.Thread(target=abrir_navegador).start()
