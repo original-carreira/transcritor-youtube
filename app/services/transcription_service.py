@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class TranscriptionService:
-    def __init__(self, translator=None):
+    def __init__(self, translator=None,  laguage_detector=None):
         """
         Service principal de orquestração.
 
@@ -26,11 +26,19 @@ class TranscriptionService:
         self.cache = CacheRepository()
         self.youtube = YouTubeClient()
         self.translator = translator
+        self.laguage_detector = laguage_detector
 
     # ==============================
     # ENTRYPOINT
     # ==============================
-    def process(self, url: str, translate: bool = False, target_lang: str | None = None):
+    def process(
+        self,
+        url: str,
+        translate: bool = False,
+        target_lang: str | None = None,
+        source_lang: str | None = None
+        ):
+        
         """
         Orquestra todo o fluxo e padroniza a resposta.
         """
@@ -44,7 +52,25 @@ class TranscriptionService:
         if isinstance(resultado, dict):
             texto = resultado.get("transcricao")
             segments = resultado.get("segments")
+            
+            # ==============================
+            # IDIOMA DETECÇÃO DE IDIOMA (OPCIONAL)
+            # ==============================
+            detected_lang = None
 
+            if translate and not source_lang and self.language_detector and texto:
+                try:
+                    detected_lang = self.language_detector.detect(texto)
+                    logger.info(f"Idioma detectado: {detected_lang}")
+                except Exception:
+                    logger.warning("Falha na detecção de idioma")
+            
+            
+            # ==============================
+            #  RESOLUÇÃO DE IDIOMA DE ORIGEM
+            # ==============================
+            source_lang_final = source_lang if source_lang else detected_lang
+            
             origem = "Cache Local" if resultado.get("from_cache") else "YouTube API"
 
             # ==============================
@@ -56,7 +82,7 @@ class TranscriptionService:
                 try:
                     texto_traduzido = self.translator.traduzir(
                         texto,
-                        source_lang="pt",
+                        source_lang=source_lang_final,
                         target_lang=target_lang
                     )
 
@@ -64,7 +90,7 @@ class TranscriptionService:
                         texto = texto_traduzido
 
                     if segments:
-                        segments = self._translate_segments(segments, target_lang)
+                        segments = self._translate_segments(segments, target_lang, source_lang_final)
 
                 except Exception:
                     logger.warning("Falha na tradução no process(), mantendo texto original")
@@ -94,7 +120,7 @@ class TranscriptionService:
     # ==============================
     # TRADUÇÃO DE SEGMENTS (BATCH)
     # ==============================
-    def _translate_segments(self, segments, target_lang):
+    def _translate_segments(self, segments, target_lang, source_lang=None):
         if not segments:
             return segments
 
@@ -108,7 +134,7 @@ class TranscriptionService:
 
             texto_traduzido = self.translator.traduzir(
                 texto_unico,
-                source_lang="pt",
+                source_lang=source_lang,
                 target_lang=target_lang
             )
 
