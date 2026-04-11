@@ -2,6 +2,7 @@
 # IMPORTS
 # ==============================
 import os
+import json
 import sys
 import threading
 import time
@@ -16,6 +17,7 @@ from app.infra.translators.translator_factory import get_translator
 # Projeto
 from app.services.transcription_service import TranscriptionService
 from app.repositories.cache_repository import CacheRepository
+from app.utils.file_utils import sanitize_filename
 from app.exporters import get_exporter
 
 
@@ -130,7 +132,7 @@ def download_txt():
         return "Nenhum conteúdo para download.", 400
 
     # Limpeza de nome centralizada no service
-    nome_arquivo = service.limpar_nome_arquivo(titulo or "transcricao")
+    nome_arquivo = sanitize_filename(titulo or "transcricao")
 
     exporter = get_exporter("txt")
     result = exporter.export(texto, titulo, nome_arquivo)
@@ -155,10 +157,40 @@ def download_docx():
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    nome_arquivo = service.limpar_nome_arquivo(titulo or "transcricao")
+    # Limpeza de nome centralizada no service
+    nome_arquivo = sanitize_filename(titulo or "transcricao")
 
     exporter = get_exporter("docx")
     result = exporter.export(texto, titulo, nome_arquivo)
+
+    return send_file(
+        result["buffer"],
+        as_attachment=True,
+        download_name=result["filename"],
+        mimetype=result["mimetype"]
+    )
+
+
+# ==============================
+# DOWNLOAD SRT
+# ==============================
+@app.route('/download_srt', methods=['POST'])
+def download_srt():
+    import json
+
+    segments_json = request.form.get('segments')
+    titulo = request.form.get('titulo', '').strip()
+
+    if not segments_json:
+        return "Nenhum segmento para exportação.", 400
+
+    segments = json.loads(segments_json)
+
+    # Limpeza de nome centralizada no service
+    nome_arquivo = sanitize_filename(titulo or "transcricao")
+
+    exporter = get_exporter("srt")
+    result = exporter.export(segments, titulo, nome_arquivo)
 
     return send_file(
         result["buffer"],
