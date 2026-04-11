@@ -4,12 +4,20 @@ from app.infra.post_processing.text_post_processor import TextPostProcessor
 
 class AdvancedTextPostProcessor(TextPostProcessor):
     """
-    Processador avançado de texto (LLM-ready).
+    Processador heurístico avançado (arquitetura estabilizada).
 
-    Atualmente:
-    - heurístico (regex + regras simples)
-    Futuro:
-    - integração com LLM
+    Pipeline organizado por fases:
+    1. Normalização
+    2. Limpeza (irreversível)
+    3. Transformação
+    4. Estrutura
+    5. Formatação final
+
+    Garantias:
+    - determinismo
+    - idempotência
+    - isolamento entre etapas
+    - ausência de efeito cascata
     """
 
     def process(self, text: str, language: str | None = None) -> str:
@@ -17,71 +25,234 @@ class AdvancedTextPostProcessor(TextPostProcessor):
             return text
 
         try:
-            texto = text.strip()
+            current = text
 
             # ==============================
-            # NORMALIZAÇÃO BÁSICA
+            # 🔵 FASE 1 — NORMALIZAÇÃO
             # ==============================
-            texto = self._normalize_spacing(texto)
+            current = self._normalize(current)
 
             # ==============================
-            # CAPITALIZAÇÃO
+            # 🔵 FASE 2 — LIMPEZA (IRREVERSÍVEL)
             # ==============================
-            texto = self._capitalize_sentences(texto)
+            current = self._remove_transcription_markers(current)
+            current = self._remove_repetitions(current)
+            current = self._remove_noise(current)
 
             # ==============================
-            # PONTUAÇÃO
+            # 🔵 FASE 3 — TRANSFORMAÇÃO
             # ==============================
-            texto = self._fix_punctuation(texto)
+            current = self._remove_redundancy(current)
+            current = self._simplify_oral_structures(current)
 
             # ==============================
-            # QUEBRAS ARTIFICIAIS
+            # 🔵 FASE 4 — ESTRUTURA
             # ==============================
-            texto = self._fix_line_breaks(texto)
+            current = self._split_sentences_smart(current)
 
-            return texto
+            # ==============================
+            # 🔵 FASE 5 — FORMATAÇÃO FINAL
+            # ==============================
+            current = self._build_semantic_paragraphs_v2(current)
+            current = self._refine_punctuation(current)
+
+            return current
 
         except Exception:
-            # fail-safe
             return text
 
     # ==============================
-    # HELPERS
+    # FASE 1 — NORMALIZAÇÃO
     # ==============================
+    def _normalize(self, text: str) -> str:
+        text = text.strip()
+        text = re.sub(r"\s+", " ", text)
+        return text
 
-    def _normalize_spacing(self, text: str) -> str:
-        text = re.sub(r'\s+', ' ', text)
-        return text.strip()
-
-    def _capitalize_sentences(self, text: str) -> str:
-        if not text:
+    # ==============================
+    # FASE 2 — LIMPEZA
+    # ==============================
+    def _remove_transcription_markers(self, text: str) -> str:
+        try:
+            text = re.sub(r"\[(.*?)\]", "", text)
+            text = re.sub(r"\s+", " ", text)
+            return text.strip()
+        except Exception:
             return text
 
-        text = text[0].upper() + text[1:]
+    def _remove_repetitions(self, text: str) -> str:
+        return re.sub(r"\b(\w+)\s+\1\b", r"\1", text, flags=re.IGNORECASE)
 
-        text = re.sub(
-            r'([.!?]\s+)([a-z])',
-            lambda m: m.group(1) + m.group(2).upper(),
-            text
-        )
+    def _remove_noise(self, text: str) -> str:
+        noise_words = ["né", "é", "então", "assim", "tipo"]
 
-        return text
+        for word in noise_words:
+            text = re.sub(rf"\b{word}\b", "", text, flags=re.IGNORECASE)
 
-    def _fix_punctuation(self, text: str) -> str:
-        # adiciona ponto final se necessário
-        if not re.search(r'[.!?]$', text):
-            text += '.'
+        return re.sub(r"\s+", " ", text).strip()
 
-        # corrige múltiplos pontos
-        text = re.sub(r'\.{2,}', '.', text)
+    # ==============================
+    # FASE 3 — TRANSFORMAÇÃO
+    # ==============================
+    def _remove_redundancy(self, text: str) -> str:
+        try:
+            tokens = text.split()
+            resultado = []
+            window = 4
 
-        return text
+            i = 0
+            while i < len(tokens):
+                palavra = tokens[i]
+                resultado.append(palavra)
 
-    def _fix_line_breaks(self, text: str) -> str:
-        # remove quebras artificiais excessivas
-        text = re.sub(r'\n{2,}', '\n\n', text)
+                for j in range(1, window + 1):
+                    if i + j < len(tokens):
+                        if tokens[i].lower() == tokens[i + j].lower():
+                            i += j
+                            break
 
-        # opcional: juntar linhas muito fragmentadas
-        text = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
+                i += 1
 
-        return text
+            return " ".join(resultado)
+
+        except Exception:
+            return text
+
+    def _simplify_oral_structures(self, text: str) -> str:
+        try:
+            sentences = re.split(r"(?<=[.!?])\s+", text)
+            resultado = []
+
+            for s in sentences:
+                s = re.sub(
+                    r"\b(ele|ela)\s+(disse|falou|viu|ouviu)\s+que\s+\1\s+",
+                    r"\1 \2 que ",
+                    s,
+                    flags=re.IGNORECASE,
+                )
+
+                s = re.sub(
+                    r"que\s+(o|a)\s+(\w+)",
+                    lambda m: self._to_gerund(m.group(2)),
+                    s,
+                    count=1,
+                    flags=re.IGNORECASE,
+                )
+
+                s = re.sub(r"\be então\b", "então", s, flags=re.IGNORECASE)
+
+                resultado.append(s)
+
+            return " ".join(resultado)
+
+        except Exception:
+            return text
+
+    def _to_gerund(self, verbo: str) -> str:
+        if verbo.endswith("ar"):
+            return verbo[:-2] + "ando"
+        if verbo.endswith("er"):
+            return verbo[:-2] + "endo"
+        if verbo.endswith("ir"):
+            return verbo[:-2] + "indo"
+        return verbo
+
+    # ==============================
+    # FASE 4 — ESTRUTURA
+    # ==============================
+    def _split_sentences_smart(self, text: str) -> str:
+        try:
+            palavras = text.split()
+
+            if len(palavras) < 20:
+                return text
+
+            conectores = {"e", "mas", "porque", "então", "quando", "que"}
+
+            for i in range(12, min(len(palavras), 25)):
+                if palavras[i].lower() in conectores:
+                    parte1 = " ".join(palavras[:i])
+                    parte2 = " ".join(palavras[i + 1:])
+
+                    if len(parte2.split()) < 3:
+                        return text
+
+                    return f"{parte1}. {parte2.capitalize()}"
+
+            return text
+
+        except Exception:
+            return text
+
+    # ==============================
+    # FASE 5 — FORMATAÇÃO FINAL
+    # ==============================
+    def _build_semantic_paragraphs_v2(self, text: str) -> str:
+        try:
+            sentences = re.split(r"(?<=[.!?])\s+", text)
+
+            if len(sentences) <= 2:
+                return text
+
+            paragraphs = []
+            buffer = []
+
+            triggers = (
+                "caríssimos irmãos",
+                "meus irmãos",
+                "mas",
+                "então",
+                "por quê",
+                "pois bem",
+                "veja",
+                "eu pergunto",
+                "pense",
+                "quantos de nós",
+                "mateus",
+                "versículo",
+            )
+
+            for sentence in sentences:
+                s_lower = sentence.lower().strip()
+
+                if any(s_lower.startswith(t) for t in triggers):
+                    if buffer:
+                        paragraphs.append(" ".join(buffer))
+                        buffer = []
+
+                buffer.append(sentence)
+
+                if len(buffer) >= 5:
+                    paragraphs.append(" ".join(buffer))
+                    buffer = []
+
+            if buffer:
+                paragraphs.append(" ".join(buffer))
+
+            return "\n\n".join(p.strip() for p in paragraphs)
+
+        except Exception:
+            return text
+
+    def _refine_punctuation(self, text: str) -> str:
+        try:
+            sentences = re.split(r"(?<=[.!?])\s+", text)
+            resultado = []
+
+            for s in sentences:
+                s = re.sub(r"\s+(mas|porém|então|por isso)\b", r", \1", s, flags=re.IGNORECASE)
+                s = re.sub(r"^(então|agora|por isso)\s+", r"\1, ", s, flags=re.IGNORECASE)
+                s = re.sub(r"\b(\w+),\s+(foi|estava|disse|fez)\b", r"\1 \2", s, flags=re.IGNORECASE)
+                s = re.sub(r"[.,]{2,}", ".", s)
+                s = re.sub(r"\s+([.,!?])", r"\1", s)
+                s = re.sub(r"([.,!?])([^\s])", r"\1 \2", s)
+
+                if not re.search(r"[.!?]$", s):
+                    s += "."
+
+                resultado.append(s.strip())
+
+            return " ".join(resultado)
+
+        except Exception:
+            return text

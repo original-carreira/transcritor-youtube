@@ -1,33 +1,26 @@
 import io
+import re
 
 
 class SrtExporter:
 
     def export(self, segments: list, titulo: str, nome_arquivo: str):
-        """
-        Gera um arquivo .srt a partir de segments.
-
-        segments: list[{
-            "start": float,
-            "end": float,
-            "text": str
-        }]
-        """
 
         if not segments:
             raise ValueError("Nenhum segmento disponível para exportação SRT.")
 
         buffer = io.BytesIO()
-
         srt_content = []
         index = 1
 
         for segment in segments:
             text = (segment.get("text") or "").strip()
 
-            # Ignora segmentos vazios
             if not text:
                 continue
+
+            # 🔥 NOVO: remover quebras de parágrafo para SRT
+            text = re.sub(r'\n+', ' ', text)
 
             start = self._format_timestamp(segment["start"])
             end = self._format_timestamp(segment["end"])
@@ -49,10 +42,6 @@ class SrtExporter:
         }
 
     def _format_timestamp(self, seconds: float) -> str:
-        """
-        Converte float (segundos) → HH:MM:SS,mmm
-        """
-
         total_milliseconds = int(round(seconds * 1000))
 
         hours = total_milliseconds // 3_600_000

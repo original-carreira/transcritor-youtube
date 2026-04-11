@@ -15,12 +15,14 @@ class TranscriptionService:
         Service principal de orquestração.
 
         Responsabilidades:
-        - Coordenar transcrição
-        - Aplicar tradução (opcional)
+        - Coordenar transcrição (API ou cache via YouTubeClient)
         - Aplicar detecção de idioma (opcional)
-        - Aplicar pós-processamento textual (opcional)
-        - Padronizar resposta
+        - Aplicar tradução (texto + segments)
+        - Aplicar pós-processamento textual
+        - Garantir persistência no cache
+        - Padronizar resposta para UI
         """
+
         self.cache = CacheRepository()
         self.youtube = YouTubeClient()
         self.translator = translator
@@ -28,7 +30,7 @@ class TranscriptionService:
         self.text_post_processor = text_post_processor
 
     # ==============================
-    # ENTRYPOINT
+    # ENTRYPOINT PRINCIPAL
     # ==============================
     def process(
         self,
@@ -39,18 +41,25 @@ class TranscriptionService:
         post_process: bool = False
     ):
         """
-        Orquestra todo o fluxo e padroniza a resposta.
+        Executa pipeline completo:
+
+        fluxo:
+        YouTubeClient → (cache/API)
+        → detecção idioma (opcional)
+        → tradução (opcional)
+        → pós-processamento (opcional)
+        → retorno padronizado
         """
+
         logger.info(
             f"Process iniciado | url={url} | translate={translate} | target_lang={target_lang} | post_process={post_process}"
         )
 
         # ==============================
-        # OBTÉM DADOS DO CLIENT
+        # OBTÉM DADOS (CACHE OU API)
         # ==============================
         resultado = self.youtube.get_transcription(url)
 
-        # Caso erro (string)
         if not isinstance(resultado, dict):
             logger.error(f"Erro no processamento: {resultado}")
 
@@ -67,6 +76,9 @@ class TranscriptionService:
         texto = resultado.get("transcricao")
         segments = resultado.get("segments")
 
+        if not texto:
+            logger.warning("Transcrição vazia")
+
         # ==============================
         # DETECÇÃO DE IDIOMA (OPCIONAL)
         # ==============================
@@ -79,10 +91,11 @@ class TranscriptionService:
             except Exception:
                 logger.warning("Falha na detecção de idioma")
 
-        source_lang_final = source_lang if source_lang else detected_lang
+        # fallback seguro
+        source_lang_final = source_lang or detected_lang or "pt"
 
         # ==============================
-        # TRADUÇÃO
+        # TRADUÇÃO (TEXTO + SEGMENTS)
         # ==============================
         if translate and self.translator and texto:
             logger.info(f"Tradução ativada | target_lang={target_lang}")
@@ -97,6 +110,7 @@ class TranscriptionService:
                 if texto_traduzido:
                     texto = texto_traduzido
 
+                # 🔥 TRADUZ SEGMENTS (CRÍTICO)
                 if segments:
                     segments = self._translate_segments(
                         segments,
@@ -112,11 +126,15 @@ class TranscriptionService:
         # ==============================
         if post_process and self.text_post_processor and texto:
             try:
-                logger.info("Aplicando pós-processamento")
+                logger.info(
+                    f"Pós-processamento aplicado | provider={type(self.text_post_processor).__name__}"
+                )
+
+                language = target_lang if translate else source_lang_final
 
                 texto_processado = self.text_post_processor.process(
                     texto,
-                    language=target_lang
+                    language=language
                 )
 
                 if texto_processado:
@@ -126,12 +144,29 @@ class TranscriptionService:
                 logger.warning("Falha no pós-processamento")
 
         # ==============================
-        # ORIGEM (PADRONIZADA)
+        # SALVAR NO CACHE (GARANTIA)
+        # ==============================
+        try:
+            if texto:
+                self.cache.salvar({
+                    "video_id": resultado.get("video_id"),
+                    "url": url,
+                    "titulo": resultado.get("titulo"),
+                    "thumbnail": resultado.get("thumbnail"),
+                    "transcricao": texto
+                })
+                logger.info("Transcrição salva no cache")
+
+        except Exception:
+            logger.warning("Falha ao salvar no cache")
+
+        # ==============================
+        # ORIGEM
         # ==============================
         origem = "cache" if resultado.get("from_cache") else "api"
 
         # ==============================
-        # RESPOSTA PADRÃO
+        # RESPOSTA PADRÃO (CONTRATO)
         # ==============================
         return {
             "text": texto,
@@ -147,6 +182,10 @@ class TranscriptionService:
     # TRADUÇÃO DE SEGMENTS
     # ==============================
     def _translate_segments(self, segments, target_lang, source_lang=None):
+        """
+        Traduz segments preservando sincronização temporal.
+        """
+
         if not segments:
             return segments
 
@@ -170,9 +209,11 @@ class TranscriptionService:
             textos_traduzidos = texto_traduzido.split(separador)
 
             if len(textos_traduzidos) != len(segments):
+                logger.warning("Mismatch na tradução de segments")
                 return segments
 
             novos = []
+
             for seg, txt in zip(segments, textos_traduzidos):
                 novos.append({
                     "start": seg["start"],

@@ -1,4 +1,5 @@
 import io
+import re
 from docx import Document
 from docx.shared import Pt
 
@@ -9,10 +10,17 @@ class DocxExporter:
         document = Document()
         document.add_heading(titulo or "Transcrição", 0)
 
+        # 🔥 normalização segura
+        data = re.sub(r'\n{3,}', '\n\n', data.strip())
+
         for paragrafo in data.split("\n\n"):
-            if paragrafo.strip():
-                p = document.add_paragraph(paragrafo.strip())
-                p.paragraph_format.space_after = Pt(12)
+            paragrafo = paragrafo.strip()
+
+            if not paragrafo:
+                continue
+
+            p = document.add_paragraph(paragrafo)
+            p.paragraph_format.space_after = Pt(12)
 
         buffer = io.BytesIO()
         document.save(buffer)
