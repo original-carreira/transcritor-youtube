@@ -11,12 +11,13 @@ class SimpleTranslator(Translator):
 
         try:
             translator = GoogleTranslator(
-                source=source_lang,
+                source=source_lang or "auto",
                 target=target_lang
             )
 
             return translator.translate(texto)
 
-        except Exception:
+        except Exception as e:
+            print("Erro de Tradução", e)
             # Mantém comportamento seguro (não quebra o sistema)
             return texto

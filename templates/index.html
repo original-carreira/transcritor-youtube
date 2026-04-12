@@ -1,15 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <!-- ==============================
-         META / CONFIG
-    ============================== -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>Transcrição YouTube</title>
-    
-    <!-- CSS -->
+    <title>Transcritor de Vídeos do YouTube</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
@@ -17,164 +10,98 @@
 
 <div class="container">
 
-    <!-- ==============================
-         TÍTULO
-    ============================== -->
     <h1>Transcritor de Vídeos do YouTube</h1>
 
     <!-- ==============================
          FORM PRINCIPAL
     ============================== -->
-    <form method="POST" onsubmit="mostrarLoading()">
+    <form method="POST">
 
-        <label for="url">URL do Vídeo:</label><br><br>
+        <label>URL do Vídeo:</label>
+        <input type="text" name="url" value="{{ url or '' }}" required>
 
-        <input type="text" id="url" name="url" 
-               value="{{ url or '' }}"  
-               required 
-               placeholder="Cole a URL do vídeo aqui">
-
-        <!-- ==============================
-             CONFIGURAÇÕES DE PROCESSAMENTO
-        ============================== -->
-        <div class="traducao-box">
-
-            <!-- Grupo 1: Tradução -->
-            <div class="grupo-opcoes">
-
-                <label class="checkbox-label">
-                    <input type="checkbox" name="translate"
-                           {% if translate %}checked{% endif %}>
-                    Traduzir texto
-                </label>
-
-                <select name="target_lang" class="select-lang">
-                    <option value="en" {% if target_lang == 'en' %}selected{% endif %}>Inglês</option>
-                    <option value="pt" {% if target_lang == 'pt' %}selected{% endif %}>Português</option>
-                    <option value="es" {% if target_lang == 'es' %}selected{% endif %}>Espanhol</option>
-                    <option value="fr" {% if target_lang == 'fr' %}selected{% endif %}>Francês</option>
-                </select>
-
-            </div>
-
-            <!-- Grupo 2: Refinamento -->
-            <div class="grupo-opcoes">
-
-                <label class="checkbox-label">
-                    <input type="checkbox" name="post_process"
-                           {% if post_process %}checked{% endif %}>
-                    Refinar texto
-                </label>
-
-            </div>
+        <div class="options">
+            
+            <label>
+                <input type="checkbox" name="post_process"
+                       {% if post_process %}checked{% endif %}>
+                Refinar texto
+            </label>
 
         </div>
 
-        <br><br>
+        <button type="submit" class="btn-primary">
+            Obter Transcrição
+        </button>
 
-        <button type="submit" id="btn-submit">Obter Transcrição</button>
-        <span id="loading">Processando...</span>
     </form>
-
-    <!-- ==============================
-         ERRO
-    ============================== -->
-    {% if resultado and not resultado.success %}
-        <div class="erro">
-            {{ resultado.error }}
-        </div>
-    {% endif %}
 
     <!-- ==============================
          RESULTADO
     ============================== -->
     {% if resultado and resultado.success %}
 
-        <h2>{{ resultado.titulo }}</h2>
+        <div class="resultado-box">
 
-        <!-- Feedback de processamento -->
-        <p class="source-info">
-            {% if resultado.source == 'cache' %}
-                ⚡ Resultado carregado rapidamente
-            {% else %}
-                ⏳ Processamento concluído
-            {% endif %}
-        </p>
+            <h2>{{ resultado.titulo or "Sem título" }}</h2>
 
-        <!-- ==============================
-             FEEDBACK DE PROCESSAMENTO
-        ============================== -->
-        <div class="info-processamento">
-
-            <!-- Badges -->
-            {% if translate %}
-                <span class="badge traducao">
-                    🌍 Tradução ({{ target_lang|upper }})
-                </span>
+            <!-- ✅ THUMBNAIL CORRETA -->
+            {% if resultado and resultado.thumbnail %}
+                <div class="thumbnail-container">
+                    <img src="{{ resultado.thumbnail }}" alt="Thumbnail">
+                </div>
             {% endif %}
 
-            {% if post_process %}
-                <span class="badge traducao">
-                    ✨ Texto refinado
-                </span>
-            {% endif %}
+            <!-- ✅ TEXTO -->
+            <textarea class="caixa-texto" readonly>{{ resultado.text if resultado and resultado.text else '' }}</textarea>
 
-            <!-- Texto explicativo -->
-            <p class="info-texto">
-                {% if translate %}
-                    Texto traduzido para {{ target_lang|upper }}
-                {% else %}
-                    Texto original (sem tradução)
-                {% endif %}
-            </p>
-
-        </div>
-
-    {% endif %}
-
-    <!-- ==============================
-         THUMBNAIL
-    ============================== -->
-    {% if resultado and resultado.thumbnail and resultado.thumbnail|length > 0 %}
-        <img 
-            src="{{ resultado.thumbnail[0] }}"
-            onerror="this.onerror=null; this.src='{{ resultado.thumbnail[1] if resultado.thumbnail|length > 1 else '' }}';"
-            alt="Thumbnail do vídeo">
-    {% endif %}
-
-    <!-- ==============================
-         TRANSCRIÇÃO
-    ============================== -->
-    {% if resultado and resultado.success %}
-
-        <h3>Transcrição:</h3>
-
-        <form method="POST">
-            <input type="hidden" name="url" value="{{ url }}">
-            <input type="hidden" name="titulo" value="{{ resultado.titulo }}">
-
-            <textarea name="texto" class="caixa-texto" rows="20" readonly>{{ resultado.text | e }}</textarea>
-
+            <!-- ==============================
+                 EXPORTAÇÕES (RESTAURADO)
+            ============================== -->
             <div class="botoes">
-                <button type="submit" formaction="/download_txt">TXT</button>
-                <button type="submit" formaction="/download_docx">DOCX</button>
-                <button type="button" onclick="copiarTexto()">Copiar</button>
-                <span id="copiado-msg">Copiado!</span>
-            </div>
-        </form>
 
-        <div class="botoes-topo">
-            <form method="GET">
-                <button class="btn-secondary">Nova Transcrição</button>
-            </form>
+                <form method="POST" action="/download_txt">
+                    <input type="hidden" name="texto" value="{{ resultado.text }}">
+                    <input type="hidden" name="titulo" value="{{ resultado.titulo }}">
+                    <button class="btn-primary">TXT</button>
+                </form>
+
+                <form method="POST" action="/download_docx">
+                    <input type="hidden" name="texto" value="{{ resultado.text }}">
+                    <input type="hidden" name="titulo" value="{{ resultado.titulo }}">
+                    <button class="btn-primary">DOCX</button>
+                </form>
+
+                {% if resultado.segments %}
+                <form method="POST" action="/download_srt">
+                    <input type="hidden" name="segments" value='{{ resultado.segments | tojson }}'>
+                    <input type="hidden" name="titulo" value="{{ resultado.titulo }}">
+                    <button class="btn-primary">SRT</button>
+                </form>
+                {% endif %}
+
+            </div>
+
+            <!-- ==============================
+                 NOVA TRANSCRIÇÃO (RESTAURADO)
+            ============================== -->
+            <div class="botoes-topo">
+                <form method="GET">
+                    <button class="btn-secondary">
+                        Nova Transcrição
+                    </button>
+                </form>
+            </div>
+
         </div>
 
+    {% else %}
+        <p>Nenhum resultado disponível</p>
     {% endif %}
 
     <!-- ==============================
          HISTÓRICO
     ============================== -->
-    {% if historico %}
     <div class="historico-box">
 
         <div class="historico-header">
@@ -186,26 +113,34 @@
             </form>
         </div>
 
-        <div class="historico-lista">
-            {% for item in historico %}
-                <form method="POST">
-                    <input type="hidden" name="url" value="{{ item.url }}">
-                    <button class="historico-item">
-                        {{ item.titulo }}
-                    </button>
-                </form>
-            {% endfor %}
-        </div>
+        {% if historico %}
+            <div class="historico-lista">
+                {% for item in historico %}
+                    <form method="POST">
+                        <input type="hidden" name="url" value="{{ item.url }}">
+                        
+                        <!-- 🔹 botão principal (carregar normal) -->
+                        <button class="historico-item">
+                            {{ item.titulo or "Sem título" }}
+                        </button>
+
+                        <!-- 🔥 botão de reprocessar -->
+                        <button type="submit" 
+                                name="post_process"
+                                value="on"
+                                class="btn-mini">
+                            Refinar
+                        </button>
+                    </form>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Sem histórico disponível</p>
+        {% endif %}
 
     </div>
-    {% endif %}
 
 </div>
-
-<!-- ==============================
-     SCRIPTS
-============================== -->
-<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 </html>

@@ -20,18 +20,27 @@ class AdvancedTranslator(Translator):
             chunks = self._split_text(texto)
 
             translator = GoogleTranslator(
-                source=source_lang,
+                source=source_lang or "auto",
                 target=target_lang
             )
 
             traduzido = []
 
             for chunk in chunks:
-                traduzido.append(translator.translate(chunk))
-
+                print("Traduzindo chunk:", len(chunk))
+                
+                try:
+                    traducao = translator.translate(chunk)
+                    traduzido.append(traducao)
+                    
+                except Exception as e:
+                    print("Erro ao traduzir chunk:", e)
+                    traduzido.append(chunk)
+                    
             return " ".join(traduzido)
 
-        except Exception:
+        except Exception as e:
+            print("Erro de Tradução:", e)
             # fail-safe
             return texto
 
@@ -39,20 +48,10 @@ class AdvancedTranslator(Translator):
     # UTIL: divisão inteligente
     # ==============================
     def _split_text(self, texto: str):
-        """
-        Divide o texto em blocos grandes, preservando contexto.
-        """
         partes = []
-        atual = ""
+        chunk_size=self.chunk_size
 
-        for linha in texto.split("\n\n"):
-            if len(atual) + len(linha) < self.chunk_size:
-                atual += " " + linha
-            else:
-                partes.append(atual.strip())
-                atual = linha
-
-        if atual:
-            partes.append(atual.strip())
+        for i in range(0, len(texto), chunk_size):
+            partes.append(texto[i:i+chunk_size])
 
         return partes

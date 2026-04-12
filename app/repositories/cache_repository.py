@@ -1,39 +1,54 @@
 import json
-import os
+from pathlib import Path
+from datetime import datetime
+import logging
+
+logger = logging.getLogger("app")
+
+
+# ==============================
+# CAMINHO ÚNICO E DETERMINÍSTICO
+# ==============================
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+CACHE_DIR = BASE_DIR / "data" / "cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+CACHE_FILE = CACHE_DIR / "historico.json"
 
 
 class CacheRepository:
     """Responsável exclusivamente pelo acesso ao cache em JSON."""
 
-    def obter_caminho_cache(self):
-        """Define o local do arquivo de cache."""
-        pasta_base = os.getenv('LOCALAPPDATA') or os.getcwd()
-        pasta_app = os.path.join(pasta_base, "@VictorCarreira", "TranscritorYouTube")
-        os.makedirs(pasta_app, exist_ok=True)
-        return os.path.join(pasta_app, "historico.json")
-
+    # ==============================
+    # LOAD
+    # ==============================
     def carregar(self):
-        """Carrega o cache completo."""
-        arquivo_cache = self.obter_caminho_cache()
-
-        if not os.path.exists(arquivo_cache):
-            return []
-
         try:
-            with open(arquivo_cache, "r", encoding="utf-8") as f:
+            if not CACHE_FILE.exists():
+                return []
+
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+
+        except Exception:
+            logger.error("Erro ao ler cache", exc_info=True)
             return []
 
+    # ==============================
+    # SAVE
+    # ==============================
     def salvar(self, dados):
-        """Salva o cache completo."""
-        arquivo_cache = self.obter_caminho_cache()
+        try:
+            with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                json.dump(dados, f, ensure_ascii=False, indent=2)
 
-        with open(arquivo_cache, "w", encoding="utf-8") as f:
-            json.dump(dados, f, ensure_ascii=False, indent=2)
+        except Exception:
+            logger.error("Erro ao salvar cache", exc_info=True)
 
+    # ==============================
+    # BUSCAR
+    # ==============================
     def buscar_por_video_id(self, video_id):
-        """Busca item no cache."""
         if not video_id:
             return None
 
@@ -45,54 +60,70 @@ class CacheRepository:
 
         return None
 
-    def adicionar(self, video_id, url, titulo, thumbnail, transcricao):
-        """Adiciona novo item evitando duplicação."""
+    # ==============================
+    # ADICIONAR (CORRIGIDO)
+    # ==============================
+    def adicionar(self, video_id, url, titulo, thumbnail, texto):
         historico = self.carregar()
 
         for item in historico:
             if item.get("video_id") == video_id:
                 return
 
-        historico.append({
-            "video_id": video_id,
-            "url": url,
-            "titulo": titulo,
-            "thumbnail": thumbnail,
-            "transcricao": transcricao
-        })
+        # 🔴 NORMALIZAÇÃO
+        if isinstance(thumbnail, list):
+            thumbnail = thumbnail[0]
 
+        item = {
+            "video_id": video_id,
+            "titulo": titulo or url,
+            "url": url,
+            "text": texto,
+            "translations": {},
+            "thumbnail": thumbnail or "",
+            "timestamp": datetime.now().isoformat()
+        }
+
+        historico.append(item)
         self.salvar(historico)
 
+    # ==============================
+    # LISTAR (FAIL-SAFE)
+    # ==============================
+    def listar(self) -> list:
+        try:
+            historico = self.carregar()
+            return list(reversed(historico))
+        except Exception:
+            logger.error("Erro ao listar histórico", exc_info=True)
+            return []
+
+    # ==============================
+    # LIMPAR
+    # ==============================
     def limpar(self):
-        """Limpa todo o cache."""
         self.salvar([])
 
-    def listar(self):
-        """Lista histórico (mais recente primeiro)."""
-        historico = self.carregar()
-        return list(reversed(historico))
-    
+    # ==============================
+    # TRADUÇÃO (CORRIGIDA)
+    # ==============================
     def obter_traducao(self, video_id, target_lang):
-        """Busca item no cache."""
         item = self.buscar_por_video_id(video_id)
-        
+
         if not item:
             return None
 
-        # GARANTE COMPATIBILIDADE
         if "translations" not in item:
             item["translations"] = {}
 
         return item["translations"].get(target_lang)
-    
+
     def salvar_traducao(self, video_id, target_lang, texto_traduzido):
-        """ Adiciona nova tradução evitando duplicação. """
         historico = self.carregar()
 
         for item in historico:
             if item.get("video_id") == video_id:
-                
-                # GARANTE COMPATIBILIDADE
+
                 if "translations" not in item:
                     item["translations"] = {}
 

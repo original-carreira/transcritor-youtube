@@ -6,7 +6,7 @@ from app.clients.youtube_client import YouTubeClient
 
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app")
 
 
 class TranscriptionService:
@@ -15,14 +15,12 @@ class TranscriptionService:
         Service principal de orquestração.
 
         Responsabilidades:
-        - Coordenar transcrição (API ou cache via YouTubeClient)
+        - Coordenar transcrição
+        - Orquestrar cache
+        - Aplicar tradução (opcional)
         - Aplicar detecção de idioma (opcional)
-        - Aplicar tradução (texto + segments)
-        - Aplicar pós-processamento textual
-        - Garantir persistência no cache
-        - Padronizar resposta para UI
+        - Aplicar pós-processamento textual (opcional)
         """
-
         self.cache = CacheRepository()
         self.youtube = YouTubeClient()
         self.translator = translator
@@ -30,111 +28,108 @@ class TranscriptionService:
         self.text_post_processor = text_post_processor
 
     # ==============================
-    # ENTRYPOINT PRINCIPAL
+    # ENTRYPOINT
     # ==============================
     def process(
         self,
         url: str,
-        translate: bool = False,
-        target_lang: str | None = None,
-        source_lang: str | None = None,
         post_process: bool = False
     ):
-        """
-        Executa pipeline completo:
-
-        fluxo:
-        YouTubeClient → (cache/API)
-        → detecção idioma (opcional)
-        → tradução (opcional)
-        → pós-processamento (opcional)
-        → retorno padronizado
-        """
-
         logger.info(
-            f"Process iniciado | url={url} | translate={translate} | target_lang={target_lang} | post_process={post_process}"
-        )
+            f"Process iniciado | url={url} | post_process={post_process}"
+            )
 
         # ==============================
-        # OBTÉM DADOS (CACHE OU API)
+        # EXTRAÇÃO DO VIDEO_ID
         # ==============================
-        resultado = self.youtube.get_transcription(url)
+        video_id = self.extrair_id(url)
+        
+        if not video_id:
+            return self._erro("URL inválida")
+        
+        # ==============================
+        # BUSCA NO CACHE
+        # ==============================
+        item_cache = self.cache.buscar_por_video_id(video_id)
 
-        if not isinstance(resultado, dict):
-            logger.error(f"Erro no processamento: {resultado}")
+        if item_cache:
+            logger.info("Cache encontrado")
 
-            return {
-                "text": None,
-                "segments": None,
-                "source": "api",
-                "success": False,
-                "error": resultado,
-                "titulo": None,
-                "thumbnail": None
-            }
+            texto_base = item_cache.get("text")  # 🔥 base sempre em PT
+            segments = item_cache.get("segments")
+            titulo = item_cache.get("titulo")
+            thumbnail = item_cache.get("thumbnail")
 
-        texto = resultado.get("transcricao")
-        segments = resultado.get("segments")
+            origem = "Cache Local"
 
-        if not texto:
-            logger.warning("Transcrição vazia")
+            texto = texto_base
+
+        else:
+            # ==============================
+            # BUSCA TRANSCRIÇÃO + METADATA
+            # ==============================
+            try:
+                transcript = self.youtube.fetch_transcript(video_id)
+
+                if not transcript:
+                    return self._erro("Transcrição não encontrada")
+
+                texto = " ".join([seg["text"] for seg in transcript])
+                segments = [
+                    {
+                        "start": seg["start"],
+                        "end": seg["start"] + seg.get("duration", 0),
+                        "text": seg["text"]
+                    }
+                    for seg in transcript
+                ]
+
+                # 🔴 CORREÇÃO AQUI (USO CORRETO DO CLIENT)
+                metadata = self.youtube.fetch_video_metadata(video_id)
+
+                titulo = metadata.get("titulo")
+                thumbnail = metadata.get("thumbnail")
+
+                # 🔴 NORMALIZA THUMBNAIL
+                if isinstance(thumbnail, list):
+                    thumbnail = thumbnail[0]
+
+                # 🔴 GARANTE TÍTULO
+                titulo = titulo or url
+
+                # ==============================
+                # SALVA NO CACHE
+                # ==============================
+                self.cache.adicionar(video_id, url, titulo, thumbnail, texto)
+
+                logger.info("Transcrição salva no cache")
+
+                origem = "YouTube API"
+
+            except Exception:
+                logger.error("Erro ao obter transcrição", exc_info=True)
+                return self._erro("Erro ao obter transcrição")
 
         # ==============================
         # DETECÇÃO DE IDIOMA (OPCIONAL)
         # ==============================
-        detected_lang = None
-
-        if translate and not source_lang and self.language_detector and texto:
-            try:
-                detected_lang = self.language_detector.detect(texto)
-                logger.info(f"Idioma detectado: {detected_lang}")
-            except Exception:
-                logger.warning("Falha na detecção de idioma")
-
-        # fallback seguro
-        source_lang_final = source_lang or detected_lang or "pt"
-
+        # Detecção temporiamente desabilitada para estabilzar o sistema       
+        
         # ==============================
-        # TRADUÇÃO (TEXTO + SEGMENTS)
+        # TRADUÇÃO (COM CACHE)
         # ==============================
-        if translate and self.translator and texto:
-            logger.info(f"Tradução ativada | target_lang={target_lang}")
-
-            try:
-                texto_traduzido = self.translator.traduzir(
-                    texto,
-                    source_lang=source_lang_final,
-                    target_lang=target_lang
-                )
-
-                if texto_traduzido:
-                    texto = texto_traduzido
-
-                # 🔥 TRADUZ SEGMENTS (CRÍTICO)
-                if segments:
-                    segments = self._translate_segments(
-                        segments,
-                        target_lang,
-                        source_lang_final
-                    )
-
-            except Exception:
-                logger.warning("Falha na tradução, mantendo original")
-
+        # Tradução temporiamente desabilitada para estabilzar o sistema
+                     
         # ==============================
-        # PÓS-PROCESSAMENTO
+        # PÓS-PROCESSAMENTO (OPCIONAL)
         # ==============================
         if post_process and self.text_post_processor and texto:
             try:
-                logger.info(
-                    f"Pós-processamento aplicado | provider={type(self.text_post_processor).__name__}"
-                )
-
-                language = target_lang if translate else source_lang_final
+                logger.info("Aplicando pós-processamento")
 
                 texto_processado = self.text_post_processor.process(
                     texto,
-                    language=language
+                    language=target_lang
                 )
 
                 if texto_processado:
@@ -144,85 +139,41 @@ class TranscriptionService:
                 logger.warning("Falha no pós-processamento")
 
         # ==============================
-        # SALVAR NO CACHE (GARANTIA)
-        # ==============================
-        try:
-            if texto:
-                self.cache.salvar({
-                    "video_id": resultado.get("video_id"),
-                    "url": url,
-                    "titulo": resultado.get("titulo"),
-                    "thumbnail": resultado.get("thumbnail"),
-                    "transcricao": texto
-                })
-                logger.info("Transcrição salva no cache")
-
-        except Exception:
-            logger.warning("Falha ao salvar no cache")
-
-        # ==============================
-        # ORIGEM
-        # ==============================
-        origem = "cache" if resultado.get("from_cache") else "api"
-
-        # ==============================
-        # RESPOSTA PADRÃO (CONTRATO)
+        # RETORNO PADRONIZADO
         # ==============================
         return {
             "text": texto,
             "segments": segments,
             "source": origem,
-            "success": True if texto else False,
-            "error": None if texto else "Transcrição vazia",
-            "titulo": resultado.get("titulo"),
-            "thumbnail": resultado.get("thumbnail")
-        }
-
+            "success": True,
+            "error": None,
+            "titulo": titulo,
+            "thumbnail": thumbnail
+        }    
+    
     # ==============================
-    # TRADUÇÃO DE SEGMENTS
+    # EXTRAIR ID
     # ==============================
-    def _translate_segments(self, segments, target_lang, source_lang=None):
-        """
-        Traduz segments preservando sincronização temporal.
-        """
-
-        if not segments:
-            return segments
-
+    def extrair_id(self, url: str):
         try:
-            logger.info(f"Traduzindo segments | qtd={len(segments)}")
+            import re
 
-            textos = [seg["text"] for seg in segments]
-            separador = "\n|||SEG|||\n"
-
-            texto_unico = separador.join(textos)
-
-            texto_traduzido = self.translator.traduzir(
-                texto_unico,
-                source_lang=source_lang,
-                target_lang=target_lang
-            )
-
-            if not texto_traduzido:
-                return segments
-
-            textos_traduzidos = texto_traduzido.split(separador)
-
-            if len(textos_traduzidos) != len(segments):
-                logger.warning("Mismatch na tradução de segments")
-                return segments
-
-            novos = []
-
-            for seg, txt in zip(segments, textos_traduzidos):
-                novos.append({
-                    "start": seg["start"],
-                    "end": seg["end"],
-                    "text": txt.strip()
-                })
-
-            return novos
+            match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})", url)
+            return match.group(1) if match else None
 
         except Exception:
-            logger.warning("Erro traduzindo segments")
-            return segments
+            return None
+
+    # ==============================
+    # ERRO PADRONIZADO
+    # ==============================
+    def _erro(self, mensagem: str):
+        return {
+            "text": None,
+            "segments": None,
+            "source": "Sistema",
+            "success": False,
+            "error": mensagem,
+            "titulo": None,
+            "thumbnail": None
+        }

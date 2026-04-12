@@ -11,9 +11,6 @@ import webbrowser
 
 from flask import Flask, render_template, request, send_file, redirect, url_for
 
-# Infra
-from app.infra.translators.translator_factory import get_translator
-
 # Projeto
 from app.services.transcription_service import TranscriptionService
 from app.repositories.cache_repository import CacheRepository
@@ -41,22 +38,27 @@ def resource_path(relative_path):
 # CONFIGURAÇÃO DA APLICAÇÃO
 # ==============================
 
+if getattr(sys, 'frozen', False):
+    # modo executável
+    template_folder = resource_path("templates")
+    static_folder = resource_path("static")
+else:
+    # modo desenvolvimento
+    template_folder = "templates"
+    static_folder = "static"
+
 app = Flask(
     __name__,
-    template_folder=resource_path("templates"),
-    static_folder=resource_path("static")
+    template_folder=template_folder,
+    static_folder=static_folder
 )
-
 
 # ==============================
 # BOOTSTRAP
 # ==============================
 
-# Define provider de tradução
-translator = get_translator("advanced")
-
 # Service principal
-service = TranscriptionService(translator=translator)
+service = TranscriptionService()
 
 # Cache (histórico)
 cache_repo = CacheRepository()
@@ -77,12 +79,11 @@ def index():
     # ==============================
     # DEFAULTS (IMPORTANTE)
     # ==============================
-    translate = False
-    target_lang = 'en'
-    post_process = False  # 🔥 CORREÇÃO DO BUG
+    post_process = False
 
     if request.method == 'POST':
         url = request.form.get('url')
+
         if url:
             url = url.strip()
 
@@ -103,32 +104,37 @@ def index():
             # ==============================
             # CONFIGURAÇÕES DE PROCESSAMENTO
             # ==============================
-            translate = request.form.get('translate') == 'on'
-            target_lang = (request.form.get('target_lang') or 'en').lower()
             post_process = request.form.get('post_process') == 'on'
 
+
+            logger.info(f'Processando URL | post_process={post_process}')
+
             # ==============================
-            # EXECUÇÃO
+            # EXECUÇÃO DO PIPELINE
             # ==============================
             resultado = service.process(
                 url,
-                translate=translate,
-                target_lang=target_lang,
                 post_process=post_process
             )
 
     # ==============================
-    # HISTÓRICO
+    # HISTÓRICO (FAIL-SAFE)
     # ==============================
-    historico = cache_repo.listar()
+    try:
+        historico = cache_repo.listar()
+        logger.info(f"Histórico carregado: {len(historico)} itens")
+    except Exception:
+        logger.error("Erro ao carregar histórico", exc_info=True)
+        historico = []
 
+    # ==============================
+    # RENDERIZAÇÃO
+    # ==============================
     return render_template(
         'index.html',
         resultado=resultado or {},
         url=url,
         historico=historico,
-        translate=translate,
-        target_lang=target_lang,
         post_process=post_process
     )
 
@@ -145,7 +151,6 @@ def download_txt():
     if not texto:
         return "Nenhum conteúdo para download.", 400
 
-    # Sanitização via utilitário (camada UI)
     nome_arquivo = sanitize_filename(titulo or "transcricao")
 
     exporter = get_exporter("txt")

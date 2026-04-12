@@ -1,8 +1,7 @@
 /* ==============================
    ESTILOS GERAIS DA APLICAÇÃO
-   ============================== */
+============================== */
 
-/* Estilo geral da página */
 body {
     font-family: 'Segoe UI', Tahoma, sans-serif;
     background: linear-gradient(135deg, #eef2f7, #f8fafc);
@@ -11,10 +10,9 @@ body {
 }
 
 /* ==============================
-   CONTAINER PRINCIPAL
-   ============================== */
+   CONTAINER
+============================== */
 
-/* Container centralizado com estilo de cartão */
 .container {
     max-width: 850px;
     margin: auto;
@@ -24,156 +22,113 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.08);
 }
 
-/* Origem da transcrição (cache/api) */
-.source-info {
-    text-align: center;
-    font-size: 14px;
-    color: #666;
-    margin-top: 8px;
-}
-
-.source-info strong {
-    color: #007BFF;
-}
-
 /* ==============================
    TIPOGRAFIA
-   ============================== */
+============================== */
 
-/* Estilo do título principal */
 h1 {
     text-align: center;
     margin-bottom: 30px;
-    font-weight: 600;
 }
 
-/* Subtítulo (ex: título do vídeo) */
 h2 {
     text-align: center;
     font-size: 18px;
     color: #444;
-    margin-top: 10px;
 }
 
 /* ==============================
    INPUTS
-   ============================== */
+============================== */
 
-/* Estilo dos campos de entrada */
 input[type="text"] {
     width: 100%;
     padding: 12px;
     margin-top: 8px;
     border-radius: 8px;
     border: 1px solid #ccc;
-    transition: all 0.2s;
-}
-
-/* Estilo quando em foco */
-input[type="text"]:focus {
-    border-color: #007BFF;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.15);
-    outline: none;
 }
 
 /* ==============================
-   BOTÕES (BASE)
-   ============================== */
+   BOTÕES
+============================== */
 
-/* Estilo base de todos os botões */
 button {
     padding: 10px 16px;
     border-radius: 8px;
     border: none;
     cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
 }
 
-/* Efeito hover geral */
 button:hover {
     transform: translateY(-1px);
 }
 
-/* ==============================
-   VARIAÇÕES DE BOTÕES
-   ============================== */
-
-/* Botão principal (ações principais) */
 .btn-primary {
     background-color: #007BFF;
     color: white;
 }
 
-.btn-primary:hover {
-    background-color: #0056b3;
-}
-
-/* Botão secundário */
 .btn-secondary {
     background-color: #495057;
     color: white;
 }
 
-.btn-secondary:hover {
-    background-color: #343a40;
-}
-
-/* Botão de ação informativa */
-.btn-info {
-    background-color: #17a2b8;
+.btn-danger {
+    background-color: #e03131;
     color: white;
 }
 
-.btn-info:hover {
-    background-color: #138496;
-}
-
-/* Botão de perigo (ex: limpar histórico) */
-.btn-danger {
-    background-color: #e03131;
-    color: #ffffff;
-}
-
-.btn-danger:hover {
-    background-color: #c92a2a;
-}
-
 /* ==============================
-   FORMULÁRIOS
-   ============================== */
+   FORM
+============================== */
 
-/* Espaçamento geral dos formulários */
 form {
     margin-top: 20px;
 }
 
 /* ==============================
-   ÁREA DE TRANSCRIÇÃO
-   ============================== */
+   OPÇÕES
+============================== */
 
-/* Estilo da caixa de texto da transcrição */
-.caixa-texto {
-    white-space: pre-wrap;
-    border: 1px solid #ddd;
-    padding: 15px;
+.options {
     margin-top: 15px;
-    width: 100%;
-    background-color: #fafafa;
-    border-radius: 8px;
-    font-family: Consolas, monospace;
-    line-height: 1.6;
-
-    /* Scroll interno da transcrição */
-    max-height: 400px;
-    overflow-y: auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 /* ==============================
-   AGRUPAMENTO DE BOTÕES
-   ============================== */
+   RESULTADO
+============================== */
 
-/* Container flex para botões */
+.resultado-box {
+    margin-top: 20px;
+}
+
+/* ==============================
+   TEXTAREA (FIX CRÍTICO)
+============================== */
+
+.caixa-texto {
+    width: 100%;
+    min-height: 300px;
+    resize: vertical;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fafafa;
+    font-family: Consolas, monospace;
+    line-height: 1.6;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+/* ==============================
+   BOTÕES DE AÇÃO
+============================== */
+
 .botoes {
     margin-top: 15px;
     display: flex;
@@ -181,7 +136,6 @@ form {
     flex-wrap: wrap;
 }
 
-/* Remove margens internas dos forms dentro de .botoes */
 .botoes form {
     margin: 0;
 }
@@ -194,9 +148,8 @@ form {
 
 /* ==============================
    IMAGEM (THUMBNAIL)
-   ============================== */
+============================== */
 
-/* Estilo para thumbnail do vídeo */
 img {
     display: block;
     margin: 20px auto;
@@ -205,38 +158,9 @@ img {
 }
 
 /* ==============================
-   FEEDBACK VISUAL
-   ============================== */
-
-/* Loading */
-#loading {
-    color: #007BFF;
-    margin-left: 10px;
-    display: none;
-}
-
-/* Mensagem "copiado" */
-#copiado-msg {
-    color: green;
-    margin-left: 10px;
-    display: none;
-}
-
-/* Mensagem de erro */
-.erro {
-    margin-top: 20px;
-    padding: 12px;
-    border-radius: 8px;
-    background-color: #ffe3e3;
-    color: #c92a2a;
-    border: 1px solid #ffa8a8;
-}
-
-/* ==============================
    HISTÓRICO
-   ============================== */
+============================== */
 
-/* Caixa do histórico */
 .historico-box {
     margin-top: 30px;
     padding: 20px;
@@ -245,35 +169,44 @@ img {
     border: 1px solid #e0e0e0;
 }
 
-/* Cabeçalho do histórico */
 .historico-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-/* Remove margem do título */
 .historico-header h3 {
     margin: 0;
 }
 
-/* Lista de itens do histórico */
 .historico-lista {
     margin-top: 15px;
     display: flex;
     flex-direction: column;
     gap: 10px;
 
-    /* Scroll interno */
     max-height: 350px;
     overflow-y: auto;
-
-    /* Firefox (cross-browser) */
-    scrollbar-width: thin;
-    scrollbar-color: #ccc transparent;
 }
 
-/* Chrome / Edge / Safari */
+.historico-item {
+    width: 100%;
+    text-align: left;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    background-color: #17a2b8;
+    color: white;
+}
+
+.historico-item:hover {
+    background-color: #138496;
+}
+
+/* ==============================
+   SCROLL (BONUS)
+============================== */
+
 .historico-lista::-webkit-scrollbar {
     width: 6px;
 }
@@ -287,83 +220,24 @@ img {
     background: #999;
 }
 
-/* Item individual do histórico */
-.historico-item {
-    width: 100%;
-    text-align: left;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    background-color: #17a2b8;
-    color: white;
-    font-size: 14px;
-}
 
-/* Hover do item */
-.historico-item:hover {
-    background-color: #138496;
-}
-
-.transcription-box {
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-/* ==============================
-   TRADUÇÃO
-   ============================== */
-
-.traducao-box {
-    margin-top: 15px;
+.historico-item-form {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     align-items: center;
-    flex-wrap: wrap;
+    margin-bottom: 6px;
 }
 
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-}
-
-.select-lang {
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-}
-
-/* ==============================
-   UX — FEEDBACK
-   ============================== */
-
-.info-processamento {
-    text-align: center;
-    margin-top: 10px;
-}
-
-.info-texto {
-    font-size: 14px;
-    color: #555;
-    margin-top: 5px;
-}
-
-.badge {
-    display: inline-block;
+.btn-mini {
     padding: 6px 10px;
-    border-radius: 20px;
     font-size: 12px;
-    font-weight: 500;
+    border-radius: 6px;
+    background: #444;
+    color: white;
+    border: none;
+    cursor: pointer;
 }
 
-.badge.traducao {
-    background-color: #e7f5ff;
-    color: #1c7ed6;
-}
-
-.grupo-opcoes {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.btn-mini:hover {
+    background: #222;
 }
