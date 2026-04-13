@@ -79,6 +79,23 @@ button:hover {
     color: white;
 }
 
+.url-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center; /* 🔥 centraliza */
+}
+
+.url-group input {
+    width: 100%;
+}
+
+.url-group button {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
 /* ==============================
    FORM
 ============================== */
@@ -141,9 +158,37 @@ form {
 }
 
 .botoes-topo {
-    margin-top: 15px;
+    margin-top: 20px;
     display: flex;
     gap: 10px;
+}
+
+/* ==============================
+   BLOCO VOLTAR (SEPARAÇÃO)
+============================== */
+
+.acao-voltar {
+    margin-top: 20px;
+}
+
+/* ==============================
+   BOTÃO VOLTAR
+============================== */
+
+.btn-voltar {
+    display: inline-block;
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+
+    background-color: #20c997;
+    color: white;
+}
+
+.btn-voltar:hover {
+    background-color: #17a589;
 }
 
 /* ==============================

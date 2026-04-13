@@ -18,22 +18,45 @@
     <form method="POST">
 
         <label>URL do Vídeo:</label>
-        <input type="text" name="url" value="{{ url or '' }}" required>
+        
+        <div class="url-group">
+            <input type="text" id="url" name="url" value="{{ url or '' }}" required>
 
-        <div class="options">
-            
-            <label>
-                <input type="checkbox" name="post_process"
-                       {% if post_process %}checked{% endif %}>
-                Refinar texto
-            </label>
+            {% if resultado and resultado.success %}
+                <button type="button"
+                        class="btn-secondary btn-mini"
+                        onclick="limparURL()">
+                    Limpar URL
+                </button>
+            {% endif %}
 
         </div>
+        
+        <div class="botoes-topo">
+            <!-- ==============================
+                TELA INICIAL
+            ============================== -->
+            {% if not resultado or not resultado.success %}
+                <button type="submit" class="btn-primary">Obter Transcrição</button>
 
-        <button type="submit" class="btn-primary">
-            Obter Transcrição
-        </button>
+            {% else %}
 
+            <!-- ==============================
+                TELA COM RESULTADO
+            ============================== -->
+            <button type="submit" class="btn-primary">Obter Nova Transcrição</button>
+
+            <button type="submit"
+                    name="post_process"
+                    value="on"
+                    class="btn-secondary">
+                Reprocessar com Refinamento
+            </button>
+
+            {% endif %}
+
+        </div>
+        
     </form>
 
     <!-- ==============================
@@ -56,7 +79,7 @@
             <textarea class="caixa-texto" readonly>{{ resultado.text if resultado and resultado.text else '' }}</textarea>
 
             <!-- ==============================
-                 EXPORTAÇÕES (RESTAURADO)
+                 EXPORTAÇÕES
             ============================== -->
             <div class="botoes">
 
@@ -81,17 +104,15 @@
                 {% endif %}
 
             </div>
-
             <!-- ==============================
-                 NOVA TRANSCRIÇÃO (RESTAURADO)
+                 VOLTAR A TELA INICIAL DE TRANSCRIÇÃO 
             ============================== -->
-            <div class="botoes-topo">
-                <form method="GET">
-                    <button class="btn-secondary">
-                        Nova Transcrição
-                    </button>
-                </form>
+            <div class="acao-voltar">
+                <a href="/" class="btn-secondary btn-voltar">
+                    Voltar à Home
+                </a>
             </div>
+
 
         </div>
 
@@ -141,6 +162,8 @@
     </div>
 
 </div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 </html>

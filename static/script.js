@@ -41,3 +41,16 @@ function mostrarLoading() {
         botao.disabled = true;
     }
 }
+
+// ==============================
+// LIMPAR URL
+// ==============================
+
+function limparURL() {
+    const campo = document.getElementById("url");
+
+    if (campo) {
+        campo.value = "";
+        campo.focus();
+    }
+}

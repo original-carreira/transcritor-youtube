@@ -3,6 +3,7 @@
 # ==============================
 from app.repositories.cache_repository import CacheRepository
 from app.clients.youtube_client import YouTubeClient
+from app.infra.post_processing.advanced_text_post_processor import AdvancedTextPostProcessor
 
 import logging
 
@@ -25,7 +26,7 @@ class TranscriptionService:
         self.youtube = YouTubeClient()
         self.translator = translator
         self.language_detector = language_detector
-        self.text_post_processor = text_post_processor
+        self.text_post_processor = text_post_processor or AdvancedTextPostProcessor()
 
     # ==============================
     # ENTRYPOINT
@@ -127,13 +128,7 @@ class TranscriptionService:
             try:
                 logger.info("Aplicando pós-processamento")
 
-                texto_processado = self.text_post_processor.process(
-                    texto,
-                    language=target_lang
-                )
-
-                if texto_processado:
-                    texto = texto_processado
+                texto= self.text_post_processor.process(texto)
 
             except Exception:
                 logger.warning("Falha no pós-processamento")
