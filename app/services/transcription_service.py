@@ -40,6 +40,8 @@ class TranscriptionService:
             f"Process iniciado | url={url} | post_process={post_process}"
             )
 
+        print("POST_PROCESS (SERVICE):", post_process)  # 👈 AQUI Retirar após teste
+
         # ==============================
         # EXTRAÇÃO DO VIDEO_ID
         # ==============================
@@ -124,9 +126,18 @@ class TranscriptionService:
         # ==============================
         # PÓS-PROCESSAMENTO (OPCIONAL)
         # ==============================
+        print("POST_PROCESS (SERVICE):", post_process)  # 👈 AQUI Retirar após teste
+        
         if post_process and self.text_post_processor and texto:
+            
+            print("ENTROU NO POST_PROCESS") # 👈 Retirar após teste
+            
+            print("ANTES:", texto[:100])  # 👈 ANTES
+            
             try:
                 logger.info("Aplicando pós-processamento")
+                
+                print("DEPOIS:", texto[:100])  # 👈 DEPOIS Retirar após teste
 
                 texto= self.text_post_processor.process(texto)
 

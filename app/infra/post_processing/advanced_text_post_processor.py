@@ -21,6 +21,9 @@ class AdvancedTextPostProcessor(TextPostProcessor):
     """
 
     def process(self, text: str, language: str | None = None) -> str:
+        
+        print("PROCESSADOR EXECUTANDO") # Retirar após teste!!!
+        
         if not text or not text.strip():
             return text
 
@@ -84,12 +87,13 @@ class AdvancedTextPostProcessor(TextPostProcessor):
         return re.sub(r"\b(\w+)\s+\1\b", r"\1", text, flags=re.IGNORECASE)
 
     def _remove_noise(self, text: str) -> str:
-        noise_words = ["né", "é", "então", "assim", "tipo"]
+        try:
+            # remove apenas repetições, não palavras isoladas
+            text = re.sub(r"\b(\w+)\s+\1\b", r"\1", text, flags=re.IGNORECASE)
+            return text
 
-        for word in noise_words:
-            text = re.sub(rf"\b{word}\b", "", text, flags=re.IGNORECASE)
-
-        return re.sub(r"\s+", " ", text).strip()
+        except Exception:
+            return text
 
     # ==============================
     # FASE 3 — TRANSFORMAÇÃO
@@ -98,20 +102,12 @@ class AdvancedTextPostProcessor(TextPostProcessor):
         try:
             tokens = text.split()
             resultado = []
-            window = 4
 
-            i = 0
-            while i < len(tokens):
-                palavra = tokens[i]
-                resultado.append(palavra)
+            for i in range(len(tokens)):
+                if i > 0 and tokens[i] == tokens[i - 1].lower():
+                    continue
 
-                for j in range(1, window + 1):
-                    if i + j < len(tokens):
-                        if tokens[i].lower() == tokens[i + j].lower():
-                            i += j
-                            break
-
-                i += 1
+                resultado.append(tokens[i])
 
             return " ".join(resultado)
 
@@ -119,34 +115,35 @@ class AdvancedTextPostProcessor(TextPostProcessor):
             return text
 
     def _simplify_oral_structures(self, text: str) -> str:
-        try:
-            sentences = re.split(r"(?<=[.!?])\s+", text)
-            resultado = []
+        return text
+        # try:
+        #     sentences = re.split(r"(?<=[.!?])\s+", text)
+        #     resultado = []
 
-            for s in sentences:
-                s = re.sub(
-                    r"\b(ele|ela)\s+(disse|falou|viu|ouviu)\s+que\s+\1\s+",
-                    r"\1 \2 que ",
-                    s,
-                    flags=re.IGNORECASE,
-                )
+        #     for s in sentences:
+        #         s = re.sub(
+        #             r"\b(ele|ela)\s+(disse|falou|viu|ouviu)\s+que\s+\1\s+",
+        #             r"\1 \2 que ",
+        #             s,
+        #             flags=re.IGNORECASE,
+        #         )
 
-                s = re.sub(
-                    r"que\s+(o|a)\s+(\w+)",
-                    lambda m: self._to_gerund(m.group(2)),
-                    s,
-                    count=1,
-                    flags=re.IGNORECASE,
-                )
+        #         # s = re.sub(
+        #         #     r"que\s+(o|a)\s+(\w+)",
+        #         #     lambda m: self._to_gerund(m.group(2)),
+        #         #     s,
+        #         #     count=1,
+        #         #     flags=re.IGNORECASE,
+        #         # )
 
-                s = re.sub(r"\be então\b", "então", s, flags=re.IGNORECASE)
+        #         s = re.sub(r"\be então\b", "então", s, flags=re.IGNORECASE)
 
-                resultado.append(s)
+        #         resultado.append(s)
 
-            return " ".join(resultado)
+        #     return " ".join(resultado)
 
-        except Exception:
-            return text
+        # except Exception:
+        #     return text
 
     def _to_gerund(self, verbo: str) -> str:
         if verbo.endswith("ar"):
@@ -162,24 +159,41 @@ class AdvancedTextPostProcessor(TextPostProcessor):
     # ==============================
     def _split_sentences_smart(self, text: str) -> str:
         try:
-            palavras = text.split()
-
-            if len(palavras) < 20:
+            if not text:
                 return text
 
-            conectores = {"e", "mas", "porque", "então", "quando", "que"}
+            # ==============================
+            # 1. NORMALIZA ESPAÇOS
+            # ==============================
+            text = re.sub(r"\s+", " ", text).strip()
 
-            for i in range(12, min(len(palavras), 25)):
-                if palavras[i].lower() in conectores:
-                    parte1 = " ".join(palavras[:i])
-                    parte2 = " ".join(palavras[i + 1:])
+            # ==============================
+            # 2. DIVIDE POR PONTUAÇÃO REAL
+            # ==============================
+            sentences = re.split(r'(?<=[.!?])\s+', text)
 
-                    if len(parte2.split()) < 3:
-                        return text
+            # ==============================
+            # 3. REMOVE FRAGMENTOS RUINS
+            # ==============================
+            sentences = [s.strip() for s in sentences if len(s.strip()) > 10]
 
-                    return f"{parte1}. {parte2.capitalize()}"
+            # ==============================
+            # 4. REAGRUPA (EVITA QUEBRA EXCESSIVA)
+            # ==============================
+            resultado = []
+            buffer = ""
 
-            return text
+            for s in sentences:
+                if len(buffer) < 120:
+                    buffer += " " + s
+                else:
+                    resultado.append(buffer.strip())
+                    buffer = s
+
+            if buffer:
+                resultado.append(buffer.strip())
+
+            return " ".join(resultado)
 
         except Exception:
             return text
@@ -192,7 +206,7 @@ class AdvancedTextPostProcessor(TextPostProcessor):
             sentences = re.split(r"(?<=[.!?])\s+", text)
 
             if len(sentences) <= 2:
-                return text
+                return "\n\n".join(sentences)
 
             paragraphs = []
             buffer = []
