@@ -65,43 +65,139 @@ class YouTubeClient:
 
         return None
 
+    
     # ==============================
-    # TRANSCRIÇÃO
+    # TRANSCRIÇÃO novo
     # ==============================
+    
     def fetch_transcript(self, video_id: str):
-
         try:
-            transcript = YouTubeTranscriptApi.fetch(
-                video_id,
-                languages=['pt', 'pt-BR', 'en']
-            )
-        except TypeError:
-            api = YouTubeTranscriptApi()
-            transcript = api.fetch(
-                video_id,
-                languages=['pt', 'pt-BR', 'en']
-            )
-
-        if not transcript:
-            return None
-
-        normalized = []
-
-        for item in transcript:
+            # 🔍 tenta usar API nova
             try:
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+                # manual
+                try:
+                    transcript = transcript_list.find_manually_created_transcript(['pt', 'pt-BR'])
+                    data = transcript.fetch()
+                except:
+                    transcript = None
+
+                # auto
+                if not transcript:
+                    try:
+                        transcript = transcript_list.find_generated_transcript(['pt', 'pt-BR'])
+                        data = transcript.fetch()
+                    except:
+                        transcript = None
+
+                # fallback inglês
+                if not transcript:
+                    try:
+                        transcript = transcript_list.find_generated_transcript(['en'])
+                        data = transcript.fetch()
+                    except:
+                        transcript = None
+
+                if not transcript:
+                    raise Exception("Nenhuma transcript encontrada")
+
+            except AttributeError:
+                # 🔥 fallback para versão antiga
+                print("Usando fallback da API antiga")
+
+                api = YouTubeTranscriptApi()
+                data = api.fetch(
+                    video_id,
+                    languages=['pt', 'pt-BR', 'en']
+                    )
+
+            # ==============================
+            # NORMALIZAÇÃO
+            # ==============================
+            normalized = []
+
+            for item in data:
+                try:
+                    
+                    normalized.append({
+                        "text": item["text"],
+                        "start": item["start"],
+                        "duration": item.get("duration", 0)
+                    })
+                    
+                except TypeError:
+                    
+                    normalized.append({
+                        "text": item.text,
+                        "start": item.start,
+                        "duration": getattr(item, "duration", 0)
+                        })
+
+            return normalized
+
+        except Exception as e:
+            print("ERRO TRANSCRIPT:", e)
+            return None  
+    
+    
+    
+    # ==============================
+    # TRANSCRIÇÃO old
+    # ==============================
+    def fetch_transcript_old(self, video_id: str):
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+
+            # ==============================
+            # 1. MANUAL (PT)
+            # ==============================
+            try:
+                transcript = transcript_list.find_manually_created_transcript(['pt', 'pt-BR'])
+                data = transcript.fetch()
+            except:
+                transcript = None
+
+            # ==============================
+            # 2. AUTO (PT)
+            # ==============================
+            if not transcript:
+                try:
+                    transcript = transcript_list.find_generated_transcript(['pt', 'pt-BR'])
+                    data = transcript.fetch()
+                except:
+                    transcript = None
+
+            # ==============================
+            # 3. FALLBACK FINAL (FETCH DIRETO)
+            # 🔥 ESSENCIAL
+            # ==============================
+            if not transcript:
+                try:
+                    data = YouTubeTranscriptApi.fetch(
+                        video_id,
+                        languages=['pt', 'pt-BR', 'en']
+                        )
+                except:
+                    return None
+
+            # ==============================
+            # NORMALIZAÇÃO
+            # ==============================
+            normalized = []
+
+            for item in data:
                 normalized.append({
                     "text": item["text"],
                     "start": item["start"],
                     "duration": item.get("duration", 0)
-                })
-            except Exception:
-                normalized.append({
-                    "text": item.text,
-                    "start": item.start,
-                    "duration": getattr(item, "duration", 0)
-                })
+                    })
 
-        return normalized
+            return normalized
+
+        except Exception as e:
+            print("ERRO TRANSCRIPT:", e)
+            return None
 
     # ==============================
     # METADATA
