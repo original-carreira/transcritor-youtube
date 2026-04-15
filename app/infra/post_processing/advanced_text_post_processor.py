@@ -21,9 +21,7 @@ class AdvancedTextPostProcessor(TextPostProcessor):
     """
 
     def process(self, text: str, language: str | None = None) -> str:
-        
-        print("PROCESSADOR EXECUTANDO") # Retirar após teste!!!
-        
+        # fail-safe               
         if not text or not text.strip():
             return text
 

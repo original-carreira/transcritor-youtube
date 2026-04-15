@@ -27,20 +27,17 @@ class AdvancedTranslator(Translator):
             traduzido = []
 
             for chunk in chunks:
-                print("Traduzindo chunk:", len(chunk))
-                
+                               
                 try:
                     traducao = translator.translate(chunk)
                     traduzido.append(traducao)
                     
-                except Exception as e:
-                    print("Erro ao traduzir chunk:", e)
+                except Exception as e:                     
                     traduzido.append(chunk)
                     
             return " ".join(traduzido)
 
-        except Exception as e:
-            print("Erro de Tradução:", e)
+        except Exception as e:            
             # fail-safe
             return texto
 

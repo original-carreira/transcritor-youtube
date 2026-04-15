@@ -105,10 +105,7 @@ def index():
             # CONFIGURAÇÕES DE PROCESSAMENTO
             # ==============================
             post_process = request.form.get('post_process') == 'on'
-            
-            print("POST_PROCESS (APP):", post_process)  # 👈 AQUI Retirar depois!!!!
-
-
+                        
             logger.info(f'Processando URL | post_process={post_process}')
 
             # ==============================

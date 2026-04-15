@@ -137,7 +137,6 @@ class YouTubeClient:
             return normalized
 
         except Exception as e:
-            print("ERRO TRANSCRIPT:", e)
             return None  
     
     
@@ -196,7 +195,6 @@ class YouTubeClient:
             return normalized
 
         except Exception as e:
-            print("ERRO TRANSCRIPT:", e)
             return None
 
     # ==============================

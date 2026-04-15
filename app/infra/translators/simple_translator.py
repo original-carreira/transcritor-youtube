@@ -17,7 +17,6 @@ class SimpleTranslator(Translator):
 
             return translator.translate(texto)
 
-        except Exception as e:
-            print("Erro de Tradução", e)
+        except Exception as e:            
             # Mantém comportamento seguro (não quebra o sistema)
             return texto
